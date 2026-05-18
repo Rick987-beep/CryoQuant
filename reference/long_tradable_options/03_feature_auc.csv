@@ -1,0 +1,14 @@
+feature,auc_all,auc_calls,auc_puts
+atm_iv_at_entry,0.587,0.608,0.567
+iv_30d_pct_rank,0.579,0.591,0.568
+hv_1d,0.564,0.568,0.559
+aligned_4h,0.516,0.518,0.514
+aligned_1h,0.507,0.51,0.504
+iv_hv_ratio,0.506,0.526,0.487
+abs_delta,0.506,0.508,0.504
+spot_1h_chg_pct,0.503,0.51,0.496
+spot_1h_accel,0.502,0.506,0.499
+spot_4h_chg_pct,0.501,0.518,0.486
+spread_pct,0.486,0.48,0.489
+spot_vs_24h_ema,0.485,0.524,0.447
+dte_at_entry,0.435,0.444,0.426

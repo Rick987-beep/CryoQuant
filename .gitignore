@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+*.egg
+
+# Build / packaging
+build/
+dist/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Data / artifacts (large, generated)
+cryoquant/features/store/**/*.parquet
+cryoquant/models/artifacts/*.joblib
+cryoquant/backtest/reports/*.html
+cryoquant/experiments/*/runs/
+
+# Local config (paths, api keys)
+.env
+cryoquant/config.local.py

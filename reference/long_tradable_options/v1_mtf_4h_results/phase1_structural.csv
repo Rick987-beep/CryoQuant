@@ -1,0 +1,9 @@
+segment,aligned_filter,n_options,base_rate_pct,windows_per_day
+DTE 4–5,spread≤10% only,2944,70.0,3.8
+DTE 4–5,4h≥1%+spread≤10%,396,74.7,1.01
+"DTE 1–3,6–7",spread≤10% only,7746,66.1,5.92
+"DTE 1–3,6–7",4h≥1%+spread≤10%,973,74.5,1.34
+US session (12/16/20 UTC),spread≤10% only,6153,67.5,2.99
+US session (12/16/20 UTC),4h≥1%+spread≤10%,885,75.9,0.84
+Non-US (00/04/08 UTC),spread≤10% only,4537,66.7,2.95
+Non-US (00/04/08 UTC),4h≥1%+spread≤10%,484,72.1,0.52
