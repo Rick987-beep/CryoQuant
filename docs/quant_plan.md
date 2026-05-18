@@ -6,6 +6,9 @@
 
 This document supersedes any previous draft. Decisions are baked in; sections with `[OPEN]` flag what is still unresolved.
 
+> **Implementation detail lives in [`quant_spec.md`](quant_spec.md).** This plan stays high-level
+> (what, why); the spec defines module APIs, acceptance tests, and live tests per phase.
+
 ---
 
 ## 1. Decisions made

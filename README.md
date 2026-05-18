@@ -9,9 +9,10 @@ integrates with **CryoBacktester** (canonical options engine) and **CryoTrader**
 ## Where to start
 
 1. Read [`docs/quant_plan.md`](docs/quant_plan.md) — the canonical plan and architecture.
-2. Read [`docs/glossary.md`](docs/glossary.md) — taxonomy for Symbol / Feature / Signal / Model.
-3. Read [`docs/decisions.md`](docs/decisions.md) — log of material decisions.
-4. Skim [`reference/`](reference/) — copies of existing research code and pineforge modules
+2. Read [`docs/quant_spec.md`](docs/quant_spec.md) — implementation spec: per-phase modules, acceptance tests, live tests.
+3. Read [`docs/glossary.md`](docs/glossary.md) — taxonomy for Symbol / Feature / Signal / Model.
+4. Read [`docs/decisions.md`](docs/decisions.md) — log of material decisions.
+5. Skim [`reference/`](reference/) — copies of existing research code and pineforge modules
    we are migrating from.
 
 ## Setup
