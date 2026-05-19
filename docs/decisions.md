@@ -84,3 +84,15 @@ not a class. Every signal is also implicitly a feature column.
 **Context:** Single source of truth for the project shape.
 **Decision:** `docs/quant_plan.md` is canonical. `docs/decisions.md` (this file) is the ADR log.
 **Consequences:** All future planning docs land here.
+
+## [2026-05-19] D14 — cryocore stays inside CryoQuant (Phase 6 decision)
+**Context:** Phase 6 originally proposed promoting `cryocore` to its own repo now that Phases 1–5
+are complete and the API has stabilised. Options were: (a) own git repo, (b) installable
+subpackage within CryoQuant, (c) stay as-is.
+**Decision:** cryocore stays as a subpackage inside CryoQuant. No promotion yet.
+**Rationale:** The API is stable but CryoTrader and CryoBacktester have not yet been updated to
+consume it. Promoting early adds multi-repo overhead with no immediate payoff. Revisit when
+a concrete integration is attempted.
+**Consequences:** Zero overhead today. CryoTrader/CryoBacktester still import directly from their
+own copies. Promotion remains on the backlog.
+

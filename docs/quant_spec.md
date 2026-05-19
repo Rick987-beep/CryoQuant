@@ -17,6 +17,9 @@ Rules of engagement:
   Most unit tests assert and exit; they don't need to leave files behind.
 - Phase-boundary rule: **never start phase N+1 until phase N's tests are green** on this machine
   and committed.
+- **Use libraries.** Whenever a well-maintained, free library does the job better than hand-rolled
+  code, install it and use it. Do not write workarounds or reinvent functionality already available
+  in a library. `pip install` freely — no need to ask first.
 
 ---
 

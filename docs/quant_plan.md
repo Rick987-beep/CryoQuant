@@ -28,6 +28,7 @@ This document supersedes any previous draft. Decisions are baked in; sections wi
 | D11 | Two-tier features: Tier-1 primitives (no store, recomputed) + Tier-2 named/versioned/optionally-cached feature sets. | The "feature store" applies only to expensive/tracked features. |
 | D12 | Three signal classes: `BoolSignal`, `StateSignal`, `ProbSignal` — all implement a common `Signal` protocol. "Indicator" is a presentation concept, not a class. | Matches how signals actually vary in nature (rules, regimes, ML outputs). |
 | D13 | Planning documents live under `CryoQuant/docs/`. This file is the canonical plan. | One place to look. |
+| D14 | **Use libraries freely.** When a well-maintained, free library does the job better than hand-rolled code, install and use it. Do not write workarounds or re-implement functionality that already exists in good quality elsewhere. | Less code to maintain; more proven correctness. |
 
 ---
 
