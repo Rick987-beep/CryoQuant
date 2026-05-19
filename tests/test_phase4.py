@@ -154,6 +154,62 @@ class TestProbSignal:
 
 
 # ===========================================================================
+# ScoreSignal
+# ===========================================================================
+
+class TestScoreSignal:
+    def _make_score_sig(self):
+        from cryoquant.signals.base import ScoreSignal
+        return ScoreSignal("rsi_score", score_fn=lambda df: df["ret_4h"] * 10.0)
+
+    def test_as_feature_is_float_series(self):
+        sig = self._make_score_sig()
+        X = _feature_df(50)
+        result = sig.as_feature(X)
+        assert isinstance(result, pd.Series)
+        assert result.dtype == float
+        assert result.name == "rsi_score"
+
+    def test_as_feature_unbounded(self):
+        sig = self._make_score_sig()
+        X = _feature_df(50)
+        result = sig.as_feature(X)
+        # Values are not constrained to [0, 1]
+        assert result.abs().max() > 1.0
+
+    def test_emit_returns_score_emit(self):
+        from cryocore.schemas import ScoreEmit
+        sig = self._make_score_sig()
+        X = _feature_df(20)
+        t = X.index[5]
+        result = sig.emit(t, X)
+        assert isinstance(result, ScoreEmit)
+        assert result.signal_id == "rsi_score"
+        assert isinstance(result.value, float)
+
+    def test_emit_value_matches_as_feature(self):
+        sig = self._make_score_sig()
+        X = _feature_df(20)
+        t = X.index[5]
+        expected = float(sig.as_feature(X).loc[t])
+        assert sig.emit(t, X).value == pytest.approx(expected)
+
+    def test_string_state_signal(self):
+        """StateSignal now accepts arbitrary states including strings."""
+        from cryoquant.signals.base import StateSignal
+        states_map = {0: "bearish", 1: "neutral", 2: "bullish"}
+        def regime_fn(df):
+            idx = (df["ret_4h"] > 1.0).astype(int) + (df["ret_4h"] > -0.5).astype(int)
+            return idx.map(states_map).fillna("neutral")
+        sig = StateSignal("regime", state_fn=regime_fn)
+        X = _feature_df(30)
+        result = sig.as_feature(X)
+        assert set(result.unique()).issubset({"bearish", "neutral", "bullish"})
+        emit = sig.emit(X.index[10], X)
+        assert emit.state in {"bearish", "neutral", "bullish"}
+
+
+# ===========================================================================
 # from_model adapters
 # ===========================================================================
 

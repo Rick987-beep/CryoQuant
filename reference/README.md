@@ -12,7 +12,7 @@ train/test runs, option universe scans, real-options P&L lookups, and exit-rule 
 
 **Highest-value entry points:**
 - `06_v2_spot_signals.py` — `build_features()` (the V2 12-feature set) and `add_outcomes()`. Will
-  become `cryoquant/features/builders.py::V2SpotFeaturesV1` and `cryoquant/features/labels.py`.
+  become `cryoquant/features/builders.py::SpotFeatures` and `cryoquant/features/labels.py`.
 - `11b_option_universe.py` / `11c_pnl_lookup.py` / `11d_optimise.py` — the real-Deribit P&L
   pipeline. Will become `cryoquant/backtest/option_lookup.py`.
 - `V2_PLAN.md` — narrative of the research findings (pullback, vol_burst, bear_burst signals).

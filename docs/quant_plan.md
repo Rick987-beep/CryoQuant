@@ -26,7 +26,7 @@ This document supersedes any previous draft. Decisions are baked in; sections wi
 | D9 | Options data: read **directly** from `CryoBacktester/backtester/data/*.parquet` via configured absolute path. Zero re-ingestion. | One source of truth. CryoBacktester's pipeline already works. |
 | D10 | Macro + on-chain ingestion: design the abstraction now, stub one FRED source (DXY) as smoke test. Build real sources only when a candidate signal needs them. | YAGNI on data we don't yet use. |
 | D11 | Two-tier features: Tier-1 primitives (no store, recomputed) + Tier-2 named/versioned/optionally-cached feature sets. | The "feature store" applies only to expensive/tracked features. |
-| D12 | Three signal classes: `BoolSignal`, `StateSignal`, `ProbSignal` — all implement a common `Signal` protocol. "Indicator" is a presentation concept, not a class. | Matches how signals actually vary in nature (rules, regimes, ML outputs). |
+| D12 | Four signal classes: `BoolSignal`, `ScoreSignal`, `StateSignal`, `ProbSignal` — all implement a common `Signal` protocol. "Indicator" is a presentation concept, not a class. | Matches how signals actually vary in nature (rules, raw scores, regimes, ML outputs). |
 | D13 | Planning documents live under `CryoQuant/docs/`. This file is the canonical plan. | One place to look. |
 | D14 | **Use libraries freely.** When a well-maintained, free library does the job better than hand-rolled code, install and use it. Do not write workarounds or re-implement functionality that already exists in good quality elsewhere. | Less code to maintain; more proven correctness. |
 
@@ -89,8 +89,11 @@ Three concrete kinds, all sharing the same protocol:
 | Class | `.emit(t)` returns | Source | Pine-portable? |
 |---|---|---|---|
 | `BoolSignal` | `bool` | A condition over features. `BTC_IS_UP_TODAY`, `pullback_fires`. | Yes |
-| `StateSignal` | `state ∈ {-1, 0, +1}` + flips | A classifier. The existing pineforge contract. | Yes |
+| `ScoreSignal` | `float` (unbounded) | Raw indicator, z-score, IV rank, momentum. | No |
+| `StateSignal` | `int \| str` (arbitrary discrete) | Regime, trend direction (-1/0/+1 or string labels). | Yes (int states) |
 | `ProbSignal` | `prob ∈ [0, 1]` + horizon + threshold + calibration | A trained model (LightGBM, etc.). | No (Pine can't run gbm) |
+
+All four are instantiated **functionally** — pass a callable, not a subclass.
 
 Same time series can simultaneously be:
 - a **feature column** (input to other models, displayable on charts) — every signal is implicitly also a feature.
@@ -155,7 +158,7 @@ CryoQuant/
 │   │   ├── calendar_features.py    # day_of_week, hour_of_day, is_us_session, is_weekend…
 │   │   ├── options.py              # iv_vs_rv, atm_iv_ts, skew_25d, butterfly_25d,
 │   │   │                           # vol_of_vol, forward_curve_slope
-│   │   ├── builders.py             # Tier-2 named feature sets (V2SpotFeaturesV1, …)
+│   │   ├── builders.py             # Tier-2 named feature sets (SpotFeatures, …)
 │   │   ├── labels.py               # ForwardReturnLabeler
 │   │   ├── store.py                # @cached decorator + on-disk parquet store
 │   │   └── catalog.yaml            # Declarative list of registered feature sets
@@ -169,7 +172,8 @@ CryoQuant/
 │   │   └── artifacts/              # serialised model files (joblib)
 │   │
 │   ├── signals/                    # 5. indicators FROM models
-│   │   ├── base.py                 # BoolSignal, StateSignal, ProbSignal classes
+│   │   ├── base.py                 # BoolSignal, ScoreSignal, StateSignal, ProbSignal
+│   │   ├── ema_cross.py            # EMA 7/21 crossover signal factories (first signal)
 │   │   ├── thresholds.py           # prob → action threshold maps
 │   │   └── publishers/
 │   │       ├── cryotrader_adapter.py   # → CryoTrader EntryCondition callable
@@ -186,6 +190,12 @@ CryoQuant/
 │   ├── experiments/                # One folder per experiment: config + thin script
 │   │
 │   └── cli/                        # `python -m cryoquant.cli ...`
+│
+├── analyses/                       # Named analyses — the "use" layer
+│   └── ema_cross_7_21/             # EMA 7/21 daily crossover (first signal)
+│       ├── backtest.py             # Entry point (symlinked from scripts/)
+│       └── exploration.ipynb       # Interactive parameter sweeps
+│                                   # reports/ is gitignored (generated output)
 │
 ├── notebooks/                      # Jupyter — exploration only
 │
@@ -254,7 +264,7 @@ Per **D11**, two tiers (see §2.2). Specific feature packs to deliver:
 - No MLflow until we have dozens of models — overkill.
 
 ### 4.5 Signals *(stage 5)*
-- Three signal classes per §2.4.
+- Four signal classes per §2.4.
 - **`ProbSignal` payload** (Pydantic, lives in `cryocore.schemas`):
   ```python
   class ProbSignal(BaseModel):
@@ -270,7 +280,7 @@ Per **D11**, two tiers (see §2.2). Specific feature packs to deliver:
 - **Publishers** (one per consumer):
   - `cryotrader_adapter.py` — returns a callable matching CryoTrader's `EntryCondition` shape.
   - `csv_emitter.py` — writes signal time series to parquet for notebooks / Panel dashboards.
-  - `pine_emitter.py` — emits Pine v5 snippet from `BoolSignal`/`StateSignal` (not `ProbSignal`).
+  - `pine_emitter.py` — emits Pine v5 snippet from `BoolSignal`/`StateSignal` (not `ProbSignal`/`ScoreSignal`).
 
 ### 4.6 Backtesting & validation *(stage 6)*
 - **Fast spot evaluator** (`spot_pnl.py`): vectorised next-bar-open execution; equity, drawdown, Sharpe, win rate, expectancy, per-regime breakdown. ≤1s for years of 1h data. Used during model selection.
@@ -297,7 +307,7 @@ Per **D11**, two tiers (see §2.2). Specific feature packs to deliver:
 | `pineforge/pineforge/schemas.py` | Split: cross-repo types → `cryocore/schemas.py`; internal → respective modules |
 | `pineforge/pineforge/trend.py` candidates | `cryoquant/models/baselines.py` (as `RuleModel`s) |
 | `pineforge/pineforge/eval.py`, `coverage.py`, `bakeoff.py`, `report.py` | `cryoquant/backtest/` |
-| `research/long_tradable_options/06_v2_spot_signals.py::build_features` | `cryoquant/features/builders.py::V2SpotFeaturesV1` |
+| `research/long_tradable_options/06_v2_spot_signals.py::build_features` | `cryoquant/features/builders.py::SpotFeatures` |
 | `research/long_tradable_options/06.add_outcomes` | `cryoquant/features/labels.py::ForwardReturnLabeler` |
 | `research/long_tradable_options/11a-d` | `cryoquant/backtest/option_lookup.py` (library-fied) |
 | Discovered signals (pullback, vol_burst, bear_burst) | `cryoquant/models/baselines.py` as `RuleModel` instances |
@@ -339,7 +349,7 @@ Create CryoQuant directory layout, `pyproject.toml`, `docs/`, empty `cryocore/` 
 
 **Phase 2 — features & labels.**
 1. Port `pineforge.ta` → `cryoquant/features/primitives.py`. Add `calendar_features.py`.
-2. Promote `06_v2_spot_signals.build_features` to `V2SpotFeaturesV1` (Tier 2, versioned).
+2. Promote `06_v2_spot_signals.build_features` to `SpotFeatures` (Tier 2, versioned).
 3. Promote `add_outcomes` to `ForwardReturnLabeler`.
 4. Build the **options feature pack** (`features/options.py`) — IV vs RV, ATM term structure, 25d risk reversal, butterfly, vol-of-vol. This is the highest-priority new content.
 
@@ -347,11 +357,11 @@ Create CryoQuant directory layout, `pyproject.toml`, `docs/`, empty `cryocore/` 
 1. Implement `Model` protocol + `RuleModel`. Re-express the V2 signals as `RuleModel`s with empirical-win-rate calibration.
 2. Implement `TabularModel` (LightGBM + isotonic).
 3. Walk-forward CV + Deflated Sharpe scorer.
-4. Train first LightGBM on `V2SpotFeaturesV1 + options pack` predicting `mag_win_2p5` at 24h horizon. Compare against the `RuleModel` baselines.
+4. Train first LightGBM on `SpotFeatures + options pack` predicting `mag_win_2p5` at 24h horizon. Compare against the `RuleModel` baselines.
 5. Model registry (DuckDB).
 
 **Phase 4 — signal publication.**
-1. Implement `BoolSignal`/`StateSignal`/`ProbSignal` + the three publishers.
+1. Implement `BoolSignal`/`ScoreSignal`/`StateSignal`/`ProbSignal` + the three publishers.
 2. **Wire one signal end-to-end into CryoTrader** as an entry condition on a paper/non-prod slot. This is the integration milestone — the proof the pipeline works.
 3. Same signal exported to parquet for a Panel/notebook dashboard.
 

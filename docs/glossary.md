@@ -36,7 +36,7 @@ A **numeric or boolean input column** computed from one or more data sources.
 - **Tier 1 (primitives / calendar):** pure function, no version, no cache. E.g. `ema_24`,
   `is_us_session`, `dow`.
 - **Tier 2 (feature set):** a named, versioned `FeatureBuilder` producing multiple columns.
-  Optionally cached on disk. E.g. `V2SpotFeaturesV1` produces 12 columns. Cache key includes
+  Optionally cached on disk. E.g. `SpotFeatures` produces 12 columns. Cache key includes
   `feature_set_id + version + symbol + tf + range`.
 
 Features are never "actionable" on their own — they are inputs.
@@ -66,11 +66,36 @@ An **actionable claim about the future**, derived from a model or a rule.
 | Class | Output | Typical source |
 |---|---|---|
 | `BoolSignal` | `bool` | Rule over features |
-| `StateSignal` | `int ∈ {-1, 0, +1}` + flips | Trend classifier (pineforge contract) |
+| `ScoreSignal` | `float` (unbounded) | Raw indicator value, z-score, IV rank, momentum |
+| `StateSignal` | `int \| str` (arbitrary discrete) | Regime, trend direction (e.g. -1/0/+1, or "bearish"/"neutral"/"bullish") |
 | `ProbSignal` | `prob ∈ [0,1]` + horizon + threshold | Trained `Model` |
 
-All three implement a common `Signal` protocol (`.emit(t)`, `.id`, `.metadata`).
+All four implement a common `Signal` protocol (`.emit(t)`, `.id`, `.metadata`).
 Signals are consumed by **publishers** (CryoTrader adapter, CSV emitter, Pine emitter).
+
+Signals are instantiated **functionally** — pass a callable, not a subclass:
+
+```python
+from cryoquant.signals.base import BoolSignal, ScoreSignal, StateSignal
+
+# BoolSignal
+entry = BoolSignal(
+    signal_id="ema_cross_long",
+    condition=lambda df: df["cross_up"].fillna(False),
+)
+
+# ScoreSignal — raw float
+rsi_score = ScoreSignal(
+    signal_id="rsi_14",
+    score_fn=lambda df: df["rsi"],
+)
+
+# StateSignal — arbitrary discrete states
+regime = StateSignal(
+    signal_id="ema_trend",
+    state_fn=lambda df: df["cross_up"].map({True: 1, False: -1}).fillna(0).astype("int8"),
+)
+```
 
 ## Indicator
 
@@ -84,6 +109,22 @@ Adapts a `Signal` to a specific consumer's interface.
 - `cryotrader_adapter` — returns a callable matching CryoTrader's `EntryCondition` signature.
 - `csv_emitter` — writes parquet for notebooks / dashboards.
 - `pine_emitter` — emits Pine v5 snippet (only from `BoolSignal`/`StateSignal`).
+
+## Analysis
+
+A named, self-contained investigation that produces a concrete answer or artefact. Lives under
+`analyses/<name>/` and contains:
+
+- A backtest script (e.g. `backtest.py`) — the entry point
+- An exploration notebook (e.g. `exploration.ipynb`) — interactive parameter sweeps
+- A `reports/` subfolder — generated HTML, CSVs, charts (gitignored)
+
+The `analyses/` tree is the "use" layer of CryoQuant; the `cryoquant/` package is the
+"core" library. Keep them separate. Framework code belongs in `cryoquant/`; one-off exploration
+belong in `analyses/`.
+
+Current analyses:
+- `analyses/ema_cross_7_21/` — EMA 7/21 daily crossover on BTCUSDT
 
 ## Experiment
 

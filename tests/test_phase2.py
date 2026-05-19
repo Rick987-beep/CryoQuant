@@ -205,10 +205,10 @@ class TestCalendarFeatures:
 
 
 # ---------------------------------------------------------------------------
-# builders.py — V2SpotFeaturesV1
+# builders.py — SpotFeatures
 # ---------------------------------------------------------------------------
 
-class TestV2SpotFeaturesV1:
+class TestSpotFeatures:
     EXPECTED_COLS = {
         "ret_1h", "ret_4h", "ret_1d", "accel_1h",
         "close_vs_ema24", "close_vs_ema168",
@@ -219,9 +219,9 @@ class TestV2SpotFeaturesV1:
     }
 
     def _make_builder_and_frames(self, n=1000):
-        from cryoquant.features.builders import V2SpotFeaturesV1, DatasetRef
+        from cryoquant.features.builders import SpotFeatures, DatasetRef
         from cryocore.instruments import Symbol
-        builder = V2SpotFeaturesV1()
+        builder = SpotFeatures()
         ref = DatasetRef(Symbol("binance.spot", "BTCUSDT"), "1h")
         frames = {ref: make_ohlcv(n=n)}
         return builder, ref, frames
@@ -233,9 +233,9 @@ class TestV2SpotFeaturesV1:
 
     def test_no_lookahead(self):
         """feature[T] must be unchanged when bars after T are removed."""
-        from cryoquant.features.builders import V2SpotFeaturesV1, DatasetRef
+        from cryoquant.features.builders import SpotFeatures, DatasetRef
         from cryocore.instruments import Symbol
-        builder = V2SpotFeaturesV1()
+        builder = SpotFeatures()
         ref = DatasetRef(Symbol("binance.spot", "BTCUSDT"), "1h")
         df = make_ohlcv(n=1000)
         frames_full = {ref: df}

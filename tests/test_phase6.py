@@ -32,6 +32,7 @@ _EXPECTED_ALL = frozenset([
     "BoolEmit",
     "StateEmit",
     "ProbEmit",
+    "ScoreEmit",
     # Calendars
     "Calendar",
     "get_calendar",

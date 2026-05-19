@@ -96,3 +96,41 @@ a concrete integration is attempted.
 **Consequences:** Zero overhead today. CryoTrader/CryoBacktester still import directly from their
 own copies. Promotion remains on the backlog.
 
+## [2026-05-19] D15 — Feature builder naming: drop iteration noise from public names
+**Context:** `V2SpotFeaturesV1` encoded research-iteration history ("V2", "v1") in a public class
+name. As a stable library name this is meaningless noise.
+**Decision:** Rename to `SpotFeatures` (id = `"spot_features"`). Internal helper renamed from
+`_build_v2_features` to `_compute_spot_features`. Cache key on disk updated to match.
+All references in docs, tests, and reference scripts updated.
+**Consequences:** Breaking change for any external code consuming the string id `"v2_spot_features"`.
+Cached parquet files under the old key are orphaned — delete them manually if present.
+
+## [2026-05-19] D16 — Four signal classes: add ScoreSignal, relax StateSignal
+**Context:** The original three-class taxonomy (D12) had a gap: no way to emit a raw continuous
+float (RSI value, z-score, IV rank) that isn't a probability. Also, `StateSignal` was hardcoded
+to `{-1, 0, 1}` at the Pydantic layer, blocking string regime labels.
+**Decision:**
+- Add `ScoreSignal(signal_id, score_fn)` — emits unbounded `float` via `ScoreEmit`.
+  `as_feature()` returns a float Series; no range constraint.
+- Relax `StateEmit.state` from `Literal[-1, 0, 1]` to `int | str`.
+- Remove the runtime guard in `StateSignal.emit()` that rejected non-{-1,0,1} values.
+- Remove the forced `astype("int8")` cast in `StateSignal.as_feature()`; dtype is now
+  whatever the `state_fn` returns (existing int8 callers unaffected).
+- Export `ScoreEmit` from `cryocore.__all__`.
+**Consequences:** `StateSignal` is now a general discrete-state emitter. Existing {-1,0,1} callers
+are unaffected. Pine emitter rejects `ScoreSignal` alongside `ProbSignal` (non-portable to Pine).
+
+## [2026-05-19] D17 — Separate "use" artefacts from library code via analyses/ and gitignore
+**Context:** Without a separation pattern, scripts, notebooks, and generated HTML reports would
+accumulate as flat files in the workspace root, polluting the library codebase.
+**Decision:**
+- Introduce `analyses/<name>/` as the home for named analyses. Each contains a backtest script,
+  an exploration notebook, and a `reports/` subfolder.
+- Add `reports/` and `analyses/*/reports/` to `.gitignore`. Generated HTML/CSV/PNG files are
+  build outputs, not source — they don't belong in git.
+- `cryoquant/` package is the library ("core"); `analyses/` is the "use" layer. Framework
+  improvements go in `cryoquant/`; one-off explorations go in `analyses/`.
+**Consequences:** Clean separation between reusable library code and per-analysis artefacts.
+`reports/` directory still works locally; just never committed. Future analyses each get their
+own named folder.
+

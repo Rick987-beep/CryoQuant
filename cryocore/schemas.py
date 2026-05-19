@@ -73,7 +73,7 @@ class BoolEmit(_BaseEmit):
 
 
 class StateEmit(_BaseEmit):
-    state: Literal[-1, 0, 1]
+    state: int | str
     flipped: bool = False
 
 
@@ -90,3 +90,9 @@ class ProbEmit(_BaseEmit):
         if not (0.0 <= v <= 1.0):
             raise ValueError(f"prob must be in [0, 1]; got {v}")
         return v
+
+
+class ScoreEmit(_BaseEmit):
+    """Continuous float signal emit — unbounded raw indicator value."""
+
+    value: float

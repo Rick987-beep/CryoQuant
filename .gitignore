@@ -34,6 +34,8 @@ cryoquant/models/artifacts/*.joblib
 data/
 tests/artefacts/
 cryoquant/experiments/*/runs/
+reports/
+analyses/*/reports/
 
 # Local config (paths, api keys)
 .env

@@ -16,7 +16,7 @@ from pathlib import Path
 # ── imports ────────────────────────────────────────────────────────────────
 from cryocore.instruments import Symbol
 from cryoquant.data.loader import load
-from cryoquant.features.builders import DatasetRef, V2SpotFeaturesV1
+from cryoquant.features.builders import DatasetRef, SpotFeatures
 from cryoquant.features.labels import ForwardReturnLabeler
 from cryoquant.models.tabular import TabularModel
 from cryoquant.models.cv import walk_forward
@@ -46,7 +46,7 @@ assert len(df_raw) > 5_000, "Too few bars — data fetch may have failed"
 # ──────────────────────────────────────────────────────────────────────────
 print("\n── 2. Building features ─────────────────────────────────────────────")
 ref = DatasetRef(sym, "1h")
-builder = V2SpotFeaturesV1()
+builder = SpotFeatures()
 X_full = builder.build({ref: df_raw})
 print(f"   Feature matrix: {X_full.shape}")
 

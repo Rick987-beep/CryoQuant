@@ -1,6 +1,6 @@
 """Phase 2 live integration test.
 
-Fetches 180d of BTC 1h data from Binance, runs V2SpotFeaturesV1, loads
+Fetches 180d of BTC 1h data from Binance, runs SpotFeatures, loads
 30 days of Deribit option chains, computes atm_iv + risk_reversal_25d +
 iv_minus_rv, and writes a brief HTML summary and a small PNG.
 
@@ -39,10 +39,10 @@ def _artefact_dir() -> Path:
 # Sign-off test
 # -----------------------------------------------------------------------
 
-def test_v2_features_on_real_data(tmp_path, monkeypatch):
-    """Fetch 180d BTC 1h, build V2SpotFeaturesV1, assert no look-ahead."""
+def test_spot_features_on_real_data(tmp_path, monkeypatch):
+    """Fetch 180d BTC 1h, build SpotFeatures, assert no look-ahead."""
     from cryoquant.data.loader import load
-    from cryoquant.features.builders import DatasetRef, V2SpotFeaturesV1
+    from cryoquant.features.builders import DatasetRef, SpotFeatures
     from cryoquant.features import store as store_mod
     from cryocore.instruments import Symbol
 
@@ -57,7 +57,7 @@ def test_v2_features_on_real_data(tmp_path, monkeypatch):
     assert len(df) > 1000, "Expected at least 1000 bars of data"
 
     ref = DatasetRef(sym, "1h")
-    builder = V2SpotFeaturesV1()
+    builder = SpotFeatures()
     features = builder.build({ref: df})
 
     # --- sanity: no forward-looking leak ---
@@ -84,13 +84,13 @@ def test_v2_features_on_real_data(tmp_path, monkeypatch):
         "rv_24h_mean": float(features["rv_24h"].dropna().mean()),
     }
     out_dir = _artefact_dir()
-    (out_dir / "v2_features_summary.json").write_text(json.dumps(summary, indent=2))
+    (out_dir / "spot_features_summary.json").write_text(json.dumps(summary, indent=2))
 
     # HTML describe table
     html = features.describe().to_html()
     (out_dir / "features_describe.html").write_text(html)
 
-    print(f"\nV2SpotFeaturesV1: {summary['rows']} rows, nan_pct={summary['nan_pct']:.1f}%")
+    print(f"\nSpotFeatures: {summary['rows']} rows, nan_pct={summary['nan_pct']:.1f}%")
 
 
 def test_options_features_on_real_data():

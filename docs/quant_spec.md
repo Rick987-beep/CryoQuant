@@ -193,8 +193,8 @@ One canonical end-to-end live test plus targeted smoke tests where the wire form
    `term_slope(df)` (front/back ATM IV ratio), `risk_reversal_25d(df)`,
    `butterfly_25d(df)`, `vol_of_vol(atm_iv_ts, n)`. Inputs are the per-date chain DataFrames
    from `deribit_options.load_chain`.
-4. `cryoquant.features.builders.V2SpotFeaturesV1` — port of
-   `06_v2_spot_signals.build_features`. Implements `FeatureBuilder` protocol:
+4. `cryoquant.features.builders.SpotFeatures` — technical feature set for 1h spot bars.
+   Implements `FeatureBuilder` protocol:
 
    ```python
    class FeatureBuilder(Protocol):
@@ -231,8 +231,8 @@ Every builder gets one test using this helper.
   for each indicator. Edge cases: leading NaNs, constant series, single-row.
 - **calendar features** — spot checks: `is_us_session` true at 14:30 UTC Monday, false at 03:00
   UTC; `is_weekend` Saturday; `is_us_holiday` 2025-12-25.
-- **V2SpotFeaturesV1** — builds on a synthetic 1000-row frame; expected columns/dtypes;
-  `assert_no_lookahead` passes. This is the regression net for the V2 port.
+- **SpotFeatures** — builds on a synthetic 1000-row frame; expected columns/dtypes;
+  `assert_no_lookahead` passes.
 - **labels** — hand-crafted series → expected label vector; trailing horizon rows dropped.
 - **`@cached` decorator** — first call writes parquet, second call uses it (spy); bumping
   `version` invalidates.
@@ -241,8 +241,8 @@ Every builder gets one test using this helper.
 
 One integration test — the V2 port is the headline risk of this phase.
 
-1. **`test_v2_features_and_options_on_real_data`** (sign-off) — pulls 180d real BTC 1h via the
-   Phase-1 loader, builds `V2SpotFeaturesV1`, then reads 30 recent Deribit daily chains and
+1. **`test_spot_features_and_options_on_real_data`** (sign-off) — pulls 180d real BTC 1h via the
+   Phase-1 loader, builds `SpotFeatures`, then reads 30 recent Deribit daily chains and
    computes `atm_iv` + `risk_reversal_25d`, joins ATM IV with daily RV. Asserts: no NaNs after
    warmup; 30/30 chain days produce finite IV; join yields ≥ 25 aligned rows. Writes one chart
    pair so the user can sanity-check the port: `features_describe.html`, `iv_minus_rv.png`.
@@ -304,7 +304,7 @@ One integration test — the V2 port is the headline risk of this phase.
 
 One sign-off run — the whole point of this phase is producing a real trained model.
 
-1. **`test_lgbm_walkforward_on_real_btc`** (sign-off) — 12 months of BTC 1h → `V2SpotFeaturesV1`
+1. **`test_lgbm_walkforward_on_real_btc`** (sign-off) — 12 months of BTC 1h → `SpotFeatures`
    → `ForwardReturnLabeler(24, 0.025, "magnitude")` → `TabularModel(LGBMClassifier(...))`
    walk-forward (180d train / 30d test, step 30d). Registers the model; reloads via registry;
    asserts reloaded predictions match in-memory ones within 1e-9. Asserts AUC and Brier are
@@ -318,10 +318,15 @@ One sign-off run — the whole point of this phase is producing a real trained m
 
 ### 4.1 Deliverables
 
-1. `cryoquant.signals.base` — `Signal` protocol; concrete classes `BoolSignal`, `StateSignal`,
-   `ProbSignal`. Each `.emit(t)` returns a Pydantic record (`cryocore.schemas.{Bool,State,Prob}Emit`)
-   with `ts`, `symbol`, `signal_id`, `metadata`. Each implements
-   `as_feature(df) -> pd.Series` so signals are usable as features (per D12).
+1. `cryoquant.signals.base` — `Signal` protocol; concrete classes `BoolSignal`, `ScoreSignal`,
+   `StateSignal`, `ProbSignal`. Each `.emit(t)` returns a Pydantic record
+   (`cryocore.schemas.{Bool,Score,State,Prob}Emit`) with `ts`, `symbol`, `signal_id`, `metadata`.
+   Each implements `as_feature(df) -> pd.Series` so signals are usable as features (per D12).
+   All are instantiated **functionally** (pass a callable, not a subclass).
+   - `BoolSignal(signal_id, condition)` — bool Series
+   - `ScoreSignal(signal_id, score_fn)` — unbounded float Series
+   - `StateSignal(signal_id, state_fn)` — arbitrary `int | str` Series (relaxed from `{-1,0,1}`)
+   - `ProbSignal(signal_id, model)` — `[0,1]` float, requires `model.predict_proba(X)`
 2. `cryoquant.signals.from_model` — adapters:
    - `bool_from_rule(rule_model, name) -> BoolSignal`
    - `prob_from_model(model, horizon_h, default_threshold) -> ProbSignal`
@@ -341,7 +346,7 @@ One sign-off run — the whole point of this phase is producing a real trained m
 ### 4.2 Acceptance tests
 
 - **protocol** — every concrete signal satisfies `Signal`; metadata round-trips through Pydantic.
-- **pine emitter** — accepts `BoolSignal`/`StateSignal`, rejects `ProbSignal`; output starts with
+- **pine emitter** — accepts `BoolSignal`/`StateSignal`, rejects `ProbSignal`/`ScoreSignal`; output starts with
   `//@version=5`, contains exactly one `indicator(` call (regex sanity).
 - **cryotrader adapter shape** — callable accepts a `SimpleNamespace` ctx matching CryoTrader's
   signature; returns a `bool`. Pure-Python test, no live deps.

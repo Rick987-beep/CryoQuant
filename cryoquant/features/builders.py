@@ -39,7 +39,7 @@ class FeatureBuilder(Protocol):
 
 
 # ---------------------------------------------------------------------------
-# V2SpotFeaturesV1 — port of 06_v2_spot_signals.build_features
+# SpotFeatures — technical features for 1h spot bars
 # ---------------------------------------------------------------------------
 
 # Config constants (match the original research script)
@@ -53,8 +53,8 @@ _VOL_Z_BARS = 24
 _RANGE_BARS = 24
 
 
-class V2SpotFeaturesV1:
-    """Port of 06_v2_spot_signals.build_features.
+class SpotFeatures:
+    """Technical feature set for 1h spot bars.
 
     Expects a single DatasetRef for BTCUSDT (or equivalent) 1h in the frames dict.
 
@@ -68,7 +68,7 @@ class V2SpotFeaturesV1:
         close, high, low, volume   (raw OHLCV for labelling)
     """
 
-    id = "v2_spot_features"
+    id = "spot_features"
     version = "1"
 
     @cached
@@ -76,11 +76,11 @@ class V2SpotFeaturesV1:
         # Expect exactly one 1h frame
         ref = next(iter(frames))
         df1h = frames[ref]
-        return _build_v2_features(df1h)
+        return _compute_spot_features(df1h)
 
 
-def _build_v2_features(df1h: pd.DataFrame) -> pd.DataFrame:
-    """Pure function used by V2SpotFeaturesV1 and tests."""
+def _compute_spot_features(df1h: pd.DataFrame) -> pd.DataFrame:
+    """Pure function used by SpotFeatures and tests."""
     close  = df1h["close"]
     high   = df1h["high"]
     low    = df1h["low"]
@@ -147,4 +147,56 @@ def _build_v2_features(df1h: pd.DataFrame) -> pd.DataFrame:
         "high":            high,
         "low":             low,
         "volume":          volume,
+    })
+
+
+# ---------------------------------------------------------------------------
+# DailyEmaCrossFeatures — EMA 7/21 crossover on daily bars
+# ---------------------------------------------------------------------------
+
+class DailyEmaCrossFeatures:
+    """EMA 7/21 crossover feature set for daily bars.
+
+    Expects a single DatasetRef for BTCUSDT (or equivalent) 1d in the frames dict.
+
+    Output columns::
+
+        ema_7, ema_21,          (shifted 1 bar: value known at bar close)
+        cross_up, cross_down,   (True on the bar where the cross occurred)
+        open, high, low, close, volume  (raw OHLCV passthrough)
+    """
+
+    id = "daily_ema_cross"
+    version = "1"
+
+    @cached
+    def build(self, frames: dict[DatasetRef, pd.DataFrame]) -> pd.DataFrame:
+        ref = next(iter(frames))
+        df1d = frames[ref]
+        return _compute_ema_cross_features(df1d)
+
+
+def _compute_ema_cross_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Pure function used by DailyEmaCrossFeatures and tests."""
+    close = df["close"]
+
+    ema_7  = P.ema(close, 7)
+    ema_21 = P.ema(close, 21)
+
+    # Cross detection at bar T: fast crossed slow between T-1 and T
+    cross_up   = (ema_7 > ema_21) & (ema_7.shift(1) <= ema_21.shift(1))
+    cross_down = (ema_7 < ema_21) & (ema_7.shift(1) >= ema_21.shift(1))
+
+    # Shift by 1 bar so that feature[T] reflects information from bar T-1.
+    # At bar T the trader knows bar T-1 closed with a cross → enters at T's open.
+    return pd.DataFrame({
+        "ema_7":      ema_7.shift(1),
+        "ema_21":     ema_21.shift(1),
+        "cross_up":   cross_up.shift(1),
+        "cross_down": cross_down.shift(1),
+        "open":       df["open"],
+        "high":       df["high"],
+        "low":        df["low"],
+        "close":      close,
+        "volume":     df["volume"],
     })

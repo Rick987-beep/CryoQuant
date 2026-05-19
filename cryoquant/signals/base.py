@@ -3,11 +3,12 @@
 Signal is the common interface over rules and trained models:
 
     BoolSignal   — fires True/False (entry/no-entry condition).
-    StateSignal  — fires -1 / 0 / +1 (trend state or directional bias).
+    ScoreSignal  — fires any float (raw indicator, z-score, momentum, IV rank, …).
+    StateSignal  — fires a discrete int or str (regime, trend direction, -1/0/+1, …).
     ProbSignal   — fires [0, 1] probability from a trained model.
 
-All three implement:
-    emit(t, X)       -> BoolEmit | StateEmit | ProbEmit
+All four implement:
+    emit(t, X)       -> BoolEmit | ScoreEmit | StateEmit | ProbEmit
     as_feature(df)   -> pd.Series  (vectorised application over a DataFrame)
 """
 from __future__ import annotations
@@ -17,7 +18,7 @@ from typing import Callable, Literal, Protocol, runtime_checkable
 import numpy as np
 import pandas as pd
 
-from cryocore.schemas import BoolEmit, ProbEmit, StateEmit
+from cryocore.schemas import BoolEmit, ProbEmit, ScoreEmit, StateEmit
 
 
 @runtime_checkable
@@ -27,7 +28,7 @@ class Signal(Protocol):
     signal_id: str
     version: str
 
-    def emit(self, t: pd.Timestamp, X: pd.DataFrame) -> BoolEmit | StateEmit | ProbEmit: ...
+    def emit(self, t: pd.Timestamp, X: pd.DataFrame) -> BoolEmit | ScoreEmit | StateEmit | ProbEmit: ...
 
     def as_feature(self, df: pd.DataFrame) -> pd.Series: ...
 
@@ -102,18 +103,19 @@ class StateSignal:
 
     def emit(self, t: pd.Timestamp, X: pd.DataFrame) -> StateEmit:
         row = X.loc[[t]] if t in X.index else X.tail(1)
-        raw = int(self.state_fn(row).iloc[0])
-        if raw not in (-1, 0, 1):
-            raise ValueError(f"StateSignal state must be -1/0/1, got {raw}")
+        raw = self.state_fn(row).iloc[0]
+        # coerce numpy scalars to native Python int or str
+        if hasattr(raw, "item"):
+            raw = raw.item()
         return StateEmit(
             ts=t.to_pydatetime(),
             signal_id=self.signal_id,
             symbol_str=self.symbol_str,
-            state=raw,  # type: ignore[arg-type]
+            state=raw,
         )
 
     def as_feature(self, df: pd.DataFrame) -> pd.Series:
-        return self.state_fn(df).astype("int8").rename(self.signal_id)
+        return self.state_fn(df).rename(self.signal_id)
 
 
 # ---------------------------------------------------------------------------
@@ -168,3 +170,46 @@ class ProbSignal:
     def as_feature(self, df: pd.DataFrame) -> pd.Series:
         probs = self._model.predict_proba(df)  # type: ignore[union-attr]
         return pd.Series(probs, index=df.index, name=self.signal_id, dtype=float)
+
+
+# ---------------------------------------------------------------------------
+# ScoreSignal
+# ---------------------------------------------------------------------------
+
+class ScoreSignal:
+    """Continuous float signal — raw indicator values, z-scores, momentum, IV rank, etc.
+
+    No bounds constraint; the score_fn is responsible for the value range.
+
+    Parameters
+    ----------
+    signal_id:  Unique identifier.
+    score_fn:   Callable(df) -> float Series (unbounded).
+    version:    Semantic version string.
+    symbol_str: "venue:ticker" used in emit records.
+    """
+
+    def __init__(
+        self,
+        signal_id: str,
+        score_fn: Callable[[pd.DataFrame], pd.Series],
+        version: str = "1",
+        symbol_str: str = "",
+    ) -> None:
+        self.signal_id = signal_id
+        self.version = version
+        self.score_fn = score_fn
+        self.symbol_str = symbol_str
+
+    def emit(self, t: pd.Timestamp, X: pd.DataFrame) -> ScoreEmit:
+        row = X.loc[[t]] if t in X.index else X.tail(1)
+        value = float(self.score_fn(row).iloc[0])
+        return ScoreEmit(
+            ts=t.to_pydatetime(),
+            signal_id=self.signal_id,
+            symbol_str=self.symbol_str,
+            value=value,
+        )
+
+    def as_feature(self, df: pd.DataFrame) -> pd.Series:
+        return self.score_fn(df).astype(float).rename(self.signal_id)
