@@ -19,6 +19,8 @@ dependencies = [
     "optuna>=3.6",
     "shap>=0.45",
     "joblib>=1.4",
+    "pandas-market-calendars>=4.4",
+    "pytz>=2024.1",
 ]
 
 [project.optional-dependencies]
@@ -49,7 +51,11 @@ exclude = ["reference*", "tests*", "notebooks*", "docs*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not live and not slow'"
+markers = [
+    "live: requires network access or external data (opt-in)",
+    "slow: takes > 5 seconds (opt-in)",
+]
 
 [tool.ruff]
 line-length = 100
