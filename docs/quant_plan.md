@@ -1,8 +1,13 @@
 # CryoQuant — Plan v2 (refined)
 
-**Date:** 18 May 2026
-**Workspace:** `/Users/ulrikdeichsel/CryoQuant` (new, fresh git repo, Python 3.12, local-only)
+**Date:** 18 May 2026  
+**Updated:** 20 May 2026 — v1.0 release complete (all phases delivered)  
+**Workspace:** `/Users/ulrikdeichsel/CryoQuant` (Python 3.12, local-only)
 **Purpose:** A pragmatic, asset-agnostic quant pipeline that turns timeline data → features → models → calibrated signals → backtests, with final consumers being **CryoTrader** (live, automated) and **research notebooks/dashboards**. Built on the lessons of `pineforge` and `research/long_tradable_options`, integrating with `CryoBacktester` as the canonical options engine.
+
+**Status:** All six phases (0–5) are complete. The first end-to-end signal (EMA 7/21 daily crossover on BTCUSDT) is implemented, backtested against spot and real Deribit options chain data, and the reports are in `reports/`.
+
+For a practical walkthrough, see [`how_to_use.md`](how_to_use.md).
 
 This document supersedes any previous draft. Decisions are baked in; sections with `[OPEN]` flag what is still unresolved.
 

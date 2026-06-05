@@ -134,3 +134,25 @@ accumulate as flat files in the workspace root, polluting the library codebase.
 `reports/` directory still works locally; just never committed. Future analyses each get their
 own named folder.
 
+## [2026-05-20] M1 — v1.0 first release complete
+**Context:** All six phases (0–5) of the implementation spec are implemented and tested.
+The first end-to-end signal (EMA 7/21 daily crossover on BTCUSDT) is running.
+**What was delivered:**
+- `cryocore` — `Symbol`, `Instrument`, UTC helpers, pluggable calendars, cross-repo Pydantic schemas.
+- `cryoquant.data` — Binance spot + perp loader, Deribit options reader (read-only against
+  CryoBacktester parquets), FRED stub, partitioned parquet cache, DuckDB catalog.
+- `cryoquant.features` — Tier-1 primitives (EMA, SMA, RMA, WMA, ATR, RSI, Bollinger, RV, IV-rank,
+  vol-z, range-ratio); calendar features; options features; Tier-2 `SpotFeatures` and
+  `DailyEmaCrossFeatures` builders; `ForwardReturnLabeler`; `@cached` store decorator.
+- `cryoquant.models` — `RuleModel`, `TabularModel` (LightGBM + isotonic calibration),
+  `purged_kfold`, `walk_forward`, `compute_metrics`, `reliability_diagram`, model registry.
+- `cryoquant.signals` — `BoolSignal`, `ScoreSignal`, `StateSignal`, `ProbSignal`; `from_model`
+  adapters; `pick_threshold`; CSV emitter, Pine v5 emitter, CryoTrader adapter.
+- `cryoquant.backtest` — vectorised spot P&L simulator (`simulate`), options backtest
+  (`option_lookup`), `deflated_sharpe`, `bootstrap_ci`, HTML report renderer.
+- `scripts/ema_cross_backtest.py` — end-to-end spot backtest.
+- `scripts/ema_cross_options_backtest.py` — end-to-end options backtest against Deribit chains.
+- `docs/how_to_use.md` — new user-facing guide with examples and best practices.
+**Milestone:** D3 is lifted — CryoQuant has shipped a working signal. CryoBacktester integration
+can now begin when a concrete use case demands it.
+
