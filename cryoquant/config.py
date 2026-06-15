@@ -8,6 +8,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+# Load .env if python-dotenv is available (dev convenience; no-op in CI)
+try:
+    from dotenv import load_dotenv as _load_dotenv
+    _load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
+except ImportError:
+    pass
+
 # Workspace root (this file's grandparent).
 ROOT: Path = Path(__file__).resolve().parents[1]
 
@@ -38,6 +45,10 @@ BINANCE_REST_BASE: str = "https://api.binance.com"
 
 # FRED API key (optional — falls back to public CSV endpoint if absent).
 FRED_API_KEY: str | None = os.environ.get("FRED_API_KEY")
+
+# Twelve Data API key — free tier: 800 requests/day, 8/minute
+# See: https://twelvedata.com/account/api-keys
+TWELVEDATA_API_KEY: str | None = os.environ.get("TWELVEDATA_API_KEY")
 
 
 # Optional local overrides (gitignored)

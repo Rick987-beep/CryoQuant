@@ -5,8 +5,9 @@ Each calendar implements `is_open(ts) -> bool` and `session_label(ts) -> str | N
 Available calendars (registry key → class):
     "crypto_24_7"   — always open
     "nyse"          — NYSE/XNYS; requires pandas_market_calendars
-    "cme_futures"   — stub (treated as NYSE-aligned for now)
-    "fx_eur"        — stub (weekdays only)
+    "cme_futures"   — weekday-only stub (approx)
+    "fx_24_5"       — FX spot: Sun 17:00 ET → Fri 17:00 ET (22:00/21:00 UTC)
+    "fx_eur"        — alias for fx_24_5 (backwards compat)
 
 Use `get_calendar(name)` to retrieve a calendar by key.
 """
@@ -95,29 +96,68 @@ class CMEFutures:
 
 
 # ---------------------------------------------------------------------------
-# FX EUR — stub (weekdays only)
+# FX 24/5 — Sun 17:00 ET → Fri 17:00 ET
+#
+# Represented in UTC:
+#   • Summer (EDT, UTC-4): opens Sun 21:00 UTC, closes Fri 21:00 UTC
+#   • Winter (EST, UTC-5): opens Sun 22:00 UTC, closes Fri 22:00 UTC
+#
+# Simple approximation used here: open Mon–Fri all UTC hours, plus
+# Sunday from 21:00 UTC onward.  This is accurate enough for daily-bar
+# cleaning (drop Sat + most of Sun) and hourly session labelling.
 # ---------------------------------------------------------------------------
 
-class FxEur:
-    name = "fx_eur"
+class FX24_5:
+    name = "fx_24_5"
 
     def is_open(self, ts: pd.Timestamp | datetime) -> bool:
         t = pd.Timestamp(ts)
-        return t.weekday() < 5
+        if t.tzinfo is None:
+            t = t.tz_localize("UTC")
+        else:
+            t = t.tz_convert("UTC")
+        dow = t.weekday()  # 0=Mon … 6=Sun
+        # Saturday always closed
+        if dow == 5:
+            return False
+        # Friday: closed from 21:00 UTC (approx weekly close — conservative)
+        if dow == 4 and t.hour >= 21:
+            return False
+        # Sunday: open from 21:00 UTC (approx weekly open)
+        if dow == 6:
+            return t.hour >= 21
+        # Mon–Thu: always open
+        return True
 
     def session_label(self, ts: pd.Timestamp | datetime) -> str | None:
-        return "fx_eur" if self.is_open(ts) else None
+        if not self.is_open(ts):
+            return None
+        t = pd.Timestamp(ts)
+        if t.tzinfo is None:
+            t = t.tz_localize("UTC")
+        else:
+            t = t.tz_convert("UTC")
+        hour = t.hour
+        # Major sessions (UTC hours, approximate summer timing)
+        if 7 <= hour < 16:
+            return "london"
+        if 12 <= hour < 21:
+            return "new_york"  # overlaps with London 12–16
+        return "sydney_tokyo"
 
 
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
+_fx_24_5 = FX24_5()
+
 _REGISTRY: dict[str, Calendar] = {
     "crypto_24_7": Crypto24_7(),
     "nyse":        NYSE(),
     "cme_futures": CMEFutures(),
-    "fx_eur":      FxEur(),
+    "fx_24_5":     _fx_24_5,
+    "fx_eur":      _fx_24_5,   # backwards-compatible alias
 }
 
 

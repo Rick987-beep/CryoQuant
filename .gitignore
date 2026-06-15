@@ -31,7 +31,7 @@ htmlcov/
 # Data / artifacts (large, generated)
 cryoquant/features/store/**/*.parquet
 cryoquant/models/artifacts/*.joblib
-data/
+/data/
 tests/artefacts/
 cryoquant/experiments/*/runs/
 reports/

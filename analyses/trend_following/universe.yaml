@@ -1,0 +1,125 @@
+# Trend-following universe manifest
+# Format: venue:ticker — all symbols must be registered in cryocore/instruments.py
+#
+# Source routing (handled by loader, not this file):
+#   daily OHLCV  → Yahoo Finance (all yahoo: symbols)
+#   hourly OHLCV → Twelve Data (equity ETFs, commodity ETFs, FX only)
+#                  Sector ETFs and futures are daily-only by design.
+#
+# Ingestion:
+#   python -m analyses.trend_following.run_ingest --tf 1d,1h          # full universe
+#   python -m analyses.trend_following.run_ingest --macro-only        # FRED + VIX
+#   python -m analyses.trend_following.run_ingest --ohlcv-only --tf 1h --force  # refresh hourly
+#
+# Default date ranges (run_ingest.py):
+#   daily  → 2010-01-01
+#   hourly → 2020-01-01  (Twelve Data earliest: ~2020-02-10 for ETFs)
+
+# ---------------------------------------------------------------------------
+# US Equity Index ETFs
+# ---------------------------------------------------------------------------
+equities:
+  description: "Broad US equity index ETFs — high liquidity, OHLCV + volume"
+  timeframes: [1d, 1h]
+  symbols:
+    - yahoo:SPY    # S&P 500
+    - yahoo:QQQ    # Nasdaq 100
+    - yahoo:DIA    # Dow Jones 30
+    - yahoo:IWM    # Russell 2000 (small cap)
+
+# ---------------------------------------------------------------------------
+# US Sector ETFs — daily only (sector rotation features; no hourly needed yet)
+# ---------------------------------------------------------------------------
+sectors:
+  description: "SPDR sector ETFs — cross-sectional relative-strength signals"
+  timeframes: [1d]
+  symbols:
+    - yahoo:XLK    # Technology
+    - yahoo:XLE    # Energy
+    - yahoo:XLF    # Financials
+    - yahoo:XLB    # Materials
+    - yahoo:XLI    # Industrials
+    - yahoo:XLY    # Consumer Discretionary
+    - yahoo:XLP    # Consumer Staples
+    - yahoo:XLV    # Health Care
+    - yahoo:XLU    # Utilities
+    - yahoo:XLRE   # Real Estate
+
+# ---------------------------------------------------------------------------
+# Commodities — ETF proxies (preferred for features and hourly backtests)
+# ---------------------------------------------------------------------------
+commodities_etf:
+  description: "Commodity ETFs — avoid futures roll noise for feature engineering"
+  timeframes: [1d, 1h]
+  symbols:
+    - yahoo:GLD    # Gold
+    - yahoo:SLV    # Silver
+    - yahoo:USO    # Crude oil (WTI)
+    - yahoo:PDBC   # Diversified commodity basket
+
+# ---------------------------------------------------------------------------
+# Commodity / Index Continuous Futures — daily only (roll noise; context only)
+# ---------------------------------------------------------------------------
+commodities_futures:
+  description: "Continuous futures (front-month) — supplementary context only"
+  timeframes: [1d]
+  symbols:
+    - yahoo:GC=F   # Gold futures
+    - yahoo:SI=F   # Silver futures
+    - yahoo:CL=F   # WTI crude oil
+    - yahoo:BZ=F   # Brent crude
+    - yahoo:NG=F   # Natural gas
+    - yahoo:HG=F   # Copper
+    - yahoo:ZC=F   # Corn
+    - yahoo:ZW=F   # Wheat
+    - yahoo:ZS=F   # Soybeans
+    - yahoo:ES=F   # E-mini S&P 500
+    - yahoo:NQ=F   # E-mini Nasdaq 100
+
+# ---------------------------------------------------------------------------
+# Major FX Pairs (G10 spot mid)
+# Hourly via Twelve Data; JPY=X and CAD=X are inverted by Yahoo (USD per foreign unit)
+# ---------------------------------------------------------------------------
+fx:
+  description: "G10 major FX spot pairs (24/5 calendar)"
+  timeframes: [1d, 1h]
+  symbols:
+    - yahoo:EURUSD=X   # EUR/USD — direct
+    - yahoo:GBPUSD=X   # GBP/USD — direct
+    - yahoo:AUDUSD=X   # AUD/USD — direct (commodity currency)
+    - yahoo:JPY=X      # USD/JPY — Yahoo inverted; TD fetches USD/JPY then inverts
+    - yahoo:CAD=X      # USD/CAD — Yahoo inverted; TD fetches USD/CAD then inverts
+
+# ---------------------------------------------------------------------------
+# Macro series — FRED API; stored in macro_store (not OHLCV loader)
+# ---------------------------------------------------------------------------
+macro_fred:
+  description: "FRED macro series — rates, spreads, financial conditions"
+  timeframes: [1d]
+  symbols:
+    - fred:US2Y             # 2-year Treasury yield
+    - fred:US10Y            # 10-year Treasury yield
+    - fred:US30Y            # 30-year Treasury yield
+    - fred:TIPS10Y          # 10-year real rate (TIPS)
+    - fred:BREAKEVEN10Y     # 10-year breakeven inflation
+    - fred:FEDFUNDS         # Daily effective fed funds (alias → DFF)
+    - fred:FEDFUNDS_UPPER   # Fed funds target upper bound (DFEDTARU)
+    - fred:FEDFUNDS_LOWER   # Fed funds target lower bound (DFEDTARL)
+    - fred:SOFR             # SOFR (from 2018)
+    - fred:YIELD_CURVE      # 10Y-2Y spread
+    - fred:YIELD_CURVE_3M   # 10Y-3M spread (Fed recession indicator)
+    - fred:HY_SPREAD        # HY OAS (ICE BofA — FRED from Jun 2023 only)
+    - fred:IG_SPREAD        # IG OAS (ICE BofA — FRED from Jun 2023 only)
+    - fred:NFCI             # Chicago Fed NFCI (weekly, 2010+)
+    - fred:NFCI_CREDIT      # NFCI credit sub-index (weekly, 2010+)
+    - fred:DXY              # Trade-weighted USD index
+    # Deferred: fred:FIN_STRESS (STLFSI4) — similar to NFCI, add if needed in Phase 2
+
+# ---------------------------------------------------------------------------
+# VIX — CBOE CSV; stored in macro_store
+# ---------------------------------------------------------------------------
+macro_cboe:
+  description: "CBOE VIX — volatility regime indicator"
+  timeframes: [1d]
+  symbols:
+    - cboe:VIX
