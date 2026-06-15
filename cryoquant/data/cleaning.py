@@ -28,6 +28,23 @@ from cryocore.time import floor_to_tf
 
 log = logging.getLogger(__name__)
 
+AssetClass = str | None  # equity, fx, commodity, …
+
+
+def _price_spike_threshold(calendar_id: str, asset_class: AssetClass) -> float:
+    """Calendar- and asset-class-aware close-to-close spike threshold."""
+    if asset_class == "fx" or calendar_id in ("fx_24_5", "fx_eur"):
+        return 0.05
+    if asset_class == "commodity" or calendar_id == "cme_futures":
+        return 0.35
+    return 0.20
+
+
+def _stale_close_threshold(calendar_id: str) -> int:
+    if calendar_id in ("fx_24_5", "fx_eur"):
+        return 8
+    return 5
+
 
 # ---------------------------------------------------------------------------
 # AuditWarning — lightweight issue report
@@ -110,6 +127,7 @@ def clean_ohlcv(
     tf: str,
     calendar_id: str = "nyse",
     *,
+    asset_class: AssetClass = None,
     drop_zero_volume_ratio: float = 0.0,
 ) -> pd.DataFrame:
     """Remove bars that are clearly wrong or outside market hours.
@@ -162,18 +180,15 @@ def clean_ohlcv(
         log.warning("clean_ohlcv: dropping %d bars with negative volume", neg_vol.sum())
     out = out[~neg_vol]
 
-    # FX weekend bars — drop Saturday and Sunday before 21:00 UTC
+    # FX off-market bars — use calendar.is_open() as single source of truth
     if calendar_id in ("fx_24_5", "fx_eur"):
-        sat = out.index.weekday == 5                              # Saturday
-        early_sun = (out.index.weekday == 6) & (out.index.hour < 21)  # Sun before open
-        # For daily tf also drop late Friday bars (daily FX bars should be Mon–Fri)
-        fx_off = sat | early_sun
-        if tf == "1d":
-            # Keep only Mon–Fri dates; weekend daily bars are noise
-            fx_off = out.index.weekday >= 5
-        if fx_off.any():
-            log.debug("clean_ohlcv: dropping %d FX weekend/off-market bars", fx_off.sum())
-        out = out[~fx_off]
+        from cryocore.calendars import get_calendar
+        cal = get_calendar(calendar_id)
+        ts_series = pd.Series(out.index, index=out.index)
+        off_market = ~ts_series.apply(cal.is_open)
+        if off_market.any():
+            log.debug("clean_ohlcv: dropping %d off-market FX bars", off_market.sum())
+        out = out[~off_market]
 
     # Zero-volume guard (optional — equities intraday; never for FX which has no volume)
     if drop_zero_volume_ratio > 0:
@@ -214,6 +229,8 @@ def audit_bars(
     df: pd.DataFrame,
     tf: str,
     calendar_id: str = "nyse",
+    *,
+    asset_class: AssetClass = None,
 ) -> list[AuditWarning]:
     """Non-destructive quality check.  Returns a list of AuditWarning objects.
 
@@ -291,22 +308,10 @@ def audit_bars(
                 meta={"max_gap_hours": float(big_gaps.max() / 3600)},
             ))
 
-    # Price spikes
-    # Thresholds by calendar type:
-    #   fx_24_5 / fx_eur : 5%  — FX rarely moves more than 2-3% in one bar;
-    #                             5% catches genuine flash crashes without false positives.
-    #   cme_futures / commodity : 35% — energy commodities can move 30%+ in a session
-    #                             (WTI went negative Apr 2020; NG spiked 50%+ in 2022).
-    #                             20% generates noise; 35% catches true data errors.
-    #   default (nyse/equity)  : 20% — calibrated for large-cap equities.
+    # Price spikes (threshold from asset_class + calendar)
     if "close" in df.columns and len(df) > 1:
         pct = df["close"].pct_change().abs().dropna()
-        if calendar_id in ("fx_24_5", "fx_eur"):
-            spike_thr = 0.05
-        elif calendar_id in ("cme_futures",):
-            spike_thr = 0.35
-        else:
-            spike_thr = 0.20
+        spike_thr = _price_spike_threshold(calendar_id, asset_class)
         n_spikes = (pct > spike_thr).sum()
         if n_spikes:
             warnings.append(AuditWarning(
@@ -316,15 +321,9 @@ def audit_bars(
                 meta={"max_move": float(pct.max()), "threshold": spike_thr},
             ))
 
-    # Stale close (flatline)
-    # Threshold by calendar type:
-    #   fx_24_5 / fx_eur : 8 consecutive unchanged bars — FX off-peak sessions
-    #                       (Asian overnight, pre-London open) genuinely flatline for
-    #                       5-7 bars when liquidity dries up.  8 consecutive bars is
-    #                       ~8h of zero movement, which is anomalous even overnight.
-    #   default          : 5 consecutive bars (equity / futures intraday).
+    # Stale close (flatline streaks)
     if "close" in df.columns and len(df) >= 5:
-        stale_streak_thr = 8 if calendar_id in ("fx_24_5", "fx_eur") else 5
+        stale_streak_thr = _stale_close_threshold(calendar_id)
         stale_mask = (df["close"].diff() == 0)
         stale_streak = (stale_mask != stale_mask.shift()).cumsum()
         streak_len = stale_mask.groupby(stale_streak).transform("sum")

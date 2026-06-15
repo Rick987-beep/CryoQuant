@@ -554,18 +554,19 @@ On re-run of the research task:
 
 ```
 cryoquant/data/
-├── cleaning.py              # normalize_ohlcv, clean_ohlcv, audit_bars
-├── macro_store.py           # write_series, load_series
-├── loader.py                # yahoo venue + Twelve Data 1h routing
+├── cleaning.py              # normalize_ohlcv, clean_ohlcv, audit_bars (asset_class-aware)
+├── ingest.py                # generic orchestrator: load_universe, run_ingest, run_audit
+├── macro_store.py           # write_series, load_series, list_macro (auto-discovers sources)
+├── loader.py                # yahoo venue + Twelve Data 1h routing; delete_partitions()
 ├── catalog.py               # (existing)
 └── sources/
     ├── yahoo.py             # fetch_bars (daily + yfinance hourly fallback)
-    ├── twelvedata.py        # fetch_bars (hourly, paginated, rate-limited)
-    ├── cboe.py              # fetch_vix
+    ├── twelvedata.py        # fetch_bars (hourly, paginated, timezone=UTC)
+    ├── cboe.py              # fetch_vix (FRED fallback uses observation_start/end)
     └── fred.py              # fetch_series (25+ aliases, fredapi + CSV fallback)
 
 cryocore/
-├── instruments.py           # yahoo Symbol entries + asset_class + FX metadata
+├── instruments.py           # Symbol entries + td_ticker_info / should_use_twelvedata helpers
 └── calendars.py             # fx_24_5 (replaces stub)
 ```
 
@@ -574,14 +575,17 @@ cryocore/
 ```
 analyses/trend_following/
 ├── universe.yaml            # tickers, asset_class, preferred tf, train/holdout splits
-├── run_ingest.py            # reads universe.yaml → calls loader + macro_store
+├── run_ingest.py            # thin CLI wrapper → cryoquant.data.ingest.run_ingest
 ├── PLAN.md
 └── RESULTS.md               # records ingest run_id per phase
 ```
 
 **Tests (framework):**
 
-- `tests/test_data_cleaning.py` — dupes, OHLC sanity, in-progress bar drop, FX weekends
+- `tests/test_data_cleaning.py` — dupes, OHLC sanity, FX weekends, commodity spike thresholds
+- `tests/test_sources_twelvedata.py` — TD parsing, inversion, pagination error handling (mocked)
+- `tests/test_sources_fred.py` — CSV fallback, alias table (mocked)
+- `tests/test_ingest.py` — universe parsing, delete_partitions, IngestResult
 - `tests/live/test_yahoo_smoke.py` — fetch SPY 30d 1d, passes OHLCVBars
 - Reuse existing catalog/loader offline tests with `venue=yahoo` fixtures
 
@@ -593,13 +597,20 @@ analyses/trend_following/
 |---|---|
 | `sources.yahoo` + loader dispatch | ✅ |
 | `sources.twelvedata` + loader 1h routing | ✅ |
-| `cleaning.py` + tests (38 passing) | ✅ |
+| `cleaning.py` + tests (42+ passing) | ✅ |
+| `ingest.py` generic orchestrator + thin `run_ingest.py` | ✅ |
+| `loader.delete_partitions()` for `--force` re-ingest | ✅ |
+| TD ticker mapping in `Instrument.meta` (`td_ticker_info`) | ✅ |
+| Asset-class-aware audit (`commodity` → 35% spike) | ✅ |
+| FX closed-bar drop via `calendar.is_open()` | ✅ |
+| Mocked HTTP tests (twelvedata, fred) | ✅ |
+| TD `timezone=UTC` fix + hourly re-ingest | ✅ |
 | `sources.cboe` + VIX in macro store | ✅ |
 | FRED alias table (25+ series, `DFF` fix) | ✅ |
 | `fx_24_5` calendar | ✅ |
 | `universe.yaml` + `run_ingest.py` | ✅ |
 | Full universe ingest (34 daily + 13 hourly + 16 macro) | ✅ |
-| Audit threshold tuning (FX stale, futures spike) | ✅ partial |
+| Audit threshold tuning (FX stale, futures/commodity spike) | ✅ |
 | QA JSON reports (`data/qa/`) | ⬜ deferred |
 | Frankfurter/Tiingo cross-check | ⬜ deferred |
 

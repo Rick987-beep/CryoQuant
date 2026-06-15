@@ -154,11 +154,16 @@ def load_series(
 # ---------------------------------------------------------------------------
 
 def list_macro() -> pd.DataFrame:
-    """Return all macro series registered in the catalog."""
+    """Return macro series registered in the catalog (any ``macro/`` source)."""
     df = cat.list_datasets()
     if df.empty:
         return df
-    return df[df["source"].isin(("fred", "cboe"))].reset_index(drop=True)
+    macro_sources = {
+        p.name for p in _MACRO_ROOT.iterdir() if p.is_dir()
+    } if _MACRO_ROOT.exists() else set()
+    if not macro_sources:
+        macro_sources = {"fred", "cboe"}
+    return df[df["source"].isin(macro_sources)].reset_index(drop=True)
 
 
 # ---------------------------------------------------------------------------

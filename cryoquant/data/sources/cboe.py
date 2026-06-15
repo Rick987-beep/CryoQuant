@@ -81,7 +81,8 @@ def _fetch_fred_fallback(start: datetime, end: datetime, sess: requests.Session)
     """Return VIX close-only as a DataFrame (open/high/low = NaN)."""
     params = {
         "id": "VIXCLS",
-        "vintage_date": end.strftime("%Y-%m-%d"),
+        "observation_start": start.strftime("%Y-%m-%d"),
+        "observation_end": end.strftime("%Y-%m-%d"),
     }
     r = sess.get(_FRED_VIX_URL, params=params, timeout=_TIMEOUT)
     r.raise_for_status()

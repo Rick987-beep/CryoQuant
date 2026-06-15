@@ -128,17 +128,27 @@ _DEFAULT_INSTRUMENTS: list[Instrument] = [
     # EURUSD=X, GBPUSD=X, AUDUSD=X are direct (1 USD per foreign unit)
     # JPY=X, CAD=X are INVERTED by Yahoo (USD per unit of foreign); normalised in cleaning
     Instrument(Symbol("yahoo", "EURUSD=X"), "fx", "USD", "fx_24_5",
-               meta={"quote_convention": "direct",   "base": "EUR", "quote": "USD"}),
+               meta={"quote_convention": "direct",   "base": "EUR", "quote": "USD",
+                     "td_ticker": "EUR/USD", "invert_td_quote": False,
+                     "hourly_source": "twelvedata"}),
     Instrument(Symbol("yahoo", "GBPUSD=X"), "fx", "USD", "fx_24_5",
-               meta={"quote_convention": "direct",   "base": "GBP", "quote": "USD"}),
+               meta={"quote_convention": "direct",   "base": "GBP", "quote": "USD",
+                     "td_ticker": "GBP/USD", "invert_td_quote": False,
+                     "hourly_source": "twelvedata"}),
     Instrument(Symbol("yahoo", "AUDUSD=X"), "fx", "USD", "fx_24_5",
-               meta={"quote_convention": "direct",   "base": "AUD", "quote": "USD"}),
+               meta={"quote_convention": "direct",   "base": "AUD", "quote": "USD",
+                     "td_ticker": "AUD/USD", "invert_td_quote": False,
+                     "hourly_source": "twelvedata"}),
     Instrument(Symbol("yahoo", "JPY=X"),    "fx", "USD", "fx_24_5",
                meta={"quote_convention": "inverted", "base": "USD", "quote": "JPY",
-                     "normalised_ticker": "USDJPY"}),
+                     "normalised_ticker": "USDJPY",
+                     "td_ticker": "USD/JPY", "invert_td_quote": True,
+                     "hourly_source": "twelvedata"}),
     Instrument(Symbol("yahoo", "CAD=X"),    "fx", "USD", "fx_24_5",
                meta={"quote_convention": "inverted", "base": "USD", "quote": "CAD",
-                     "normalised_ticker": "USDCAD"}),
+                     "normalised_ticker": "USDCAD",
+                     "td_ticker": "USD/CAD", "invert_td_quote": True,
+                     "hourly_source": "twelvedata"}),
 
     # VIX (CBOE — via macro_store, not OHLCV loader)
     Instrument(Symbol("cboe",  "VIX"),   "volatility", "USD", "nyse"),
@@ -150,3 +160,44 @@ _INSTRUMENT_REGISTRY: dict[Symbol, Instrument] = {i.symbol: i for i in _DEFAULT_
 def get_instrument(symbol: Symbol) -> Instrument | None:
     """Look up default instrument metadata. Returns None if not registered."""
     return _INSTRUMENT_REGISTRY.get(symbol)
+
+
+def td_ticker_info(symbol: Symbol) -> tuple[str, bool]:
+    """Return ``(twelvedata_ticker, invert_quote)`` for a Yahoo-venue symbol.
+
+    Twelve Data ticker and inversion flags live in ``Instrument.meta``:
+    ``td_ticker``, ``invert_td_quote``.  When absent, the Yahoo ticker is used
+    as-is with no inversion (works for US stocks and ETFs).
+    """
+    instr = get_instrument(symbol)
+    if instr is not None:
+        td = instr.meta.get("td_ticker")
+        if td:
+            return str(td), bool(instr.meta.get("invert_td_quote", False))
+    return symbol.ticker, False
+
+
+def should_use_twelvedata(symbol: Symbol, tf: str) -> bool:
+    """Whether ``loader`` should route this symbol/tf to Twelve Data.
+
+  Rules (in order):
+    1. Only ``1h`` with ``TWELVEDATA_API_KEY`` set.
+    2. Explicit ``meta.hourly_source`` override (``twelvedata`` / ``yahoo``).
+    3. Skip continuous futures (``=F`` suffix).
+    4. Default: equity, FX, and commodity symbols use Twelve Data for hourly.
+    """
+    from cryoquant import config
+
+    if tf != "1h" or not config.TWELVEDATA_API_KEY:
+        return False
+    instr = get_instrument(symbol)
+    if instr is None:
+        return False
+    hourly = instr.meta.get("hourly_source")
+    if hourly == "yahoo":
+        return False
+    if hourly == "twelvedata":
+        return True
+    if symbol.ticker.endswith("=F"):
+        return False
+    return instr.asset_class in ("equity", "fx", "commodity")

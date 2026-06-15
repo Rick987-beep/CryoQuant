@@ -1,7 +1,7 @@
 # Trend-Following Research — Results
 
 **Created:** 2026-06-11  
-**Updated:** 2026-06-15  
+**Updated:** 2026-06-15 (TD timezone fix + hourly re-ingest)  
 **Status:** Phase 1 complete — Phase 2 not started  
 **Plan:** [`PLAN.md`](PLAN.md)
 
@@ -35,9 +35,10 @@
 | OHLCV cleaning + audit | `cryoquant/data/cleaning.py` |
 | Macro parquet store | `cryoquant/data/macro_store.py` |
 | Loader (yahoo + TD routing) | `cryoquant/data/loader.py` |
+| Generic ingest orchestrator | `cryoquant/data/ingest.py` |
 | Universe manifest | `analyses/trend_following/universe.yaml` |
-| Ingest CLI | `analyses/trend_following/run_ingest.py` |
-| Tests (38 passing) | `tests/test_data_cleaning.py` |
+| Ingest CLI (thin wrapper) | `analyses/trend_following/run_ingest.py` |
+| Tests | `test_data_cleaning`, `test_sources_twelvedata`, `test_sources_fred`, `test_ingest` (+ existing suite; **279 passing**) |
 
 API keys stored in `.env` (gitignored); loaded via `python-dotenv` → `cryoquant.config`.
 
@@ -122,10 +123,50 @@ Audit thresholds updated in `cleaning.py`:
 | Warning | Symbols | Verdict |
 |---|---|---|
 | `GAPS` | All 13 | Weekend/holiday gaps — expected |
-| `PRICE_SPIKE` | USO (3), PDBC (1) | Genuine energy shocks (commodity ETFs use `nyse` calendar, 20% threshold) |
+| `PRICE_SPIKE` | USO (3), PDBC (1) | Genuine energy shocks; commodity ETFs now audited at 35% via `asset_class` |
 | `STALE_CLOSE` (≥8 bars) | GBPUSD=X, CAD=X | NY2021 holiday flatline — data provider repeated last price for ~14h |
 
 **17 warnings total — all legitimate market events; no data corruption.**
+
+### Post-ingest refactor (2026-06-15)
+
+Hardening pass after initial ingest — no data re-fetched:
+
+| Change | Rationale |
+|---|---|
+| `cryoquant/data/ingest.py` | Reusable orchestrator; `run_ingest.py` is now a thin CLI wrapper |
+| `loader.delete_partitions()` | `--force` clears parquet + sentinel files before re-fetch |
+| `Instrument.meta.td_ticker` | Twelve Data FX/ETF mapping lives in registry, not source code |
+| `asset_class`-aware `audit_bars` | Commodity ETFs (USO, GLD) use 35% spike threshold on NYSE calendar |
+| `calendar.is_open()` in `clean_ohlcv` | FX weekend drop uses calendar logic instead of hardcoded weekday checks |
+| TD rate limiter + HTTP error surfacing | Prevents silent partial fetches; respects free-tier 8 req/min |
+| Mocked HTTP tests | `test_sources_twelvedata`, `test_sources_fred`, `test_ingest` — no network in CI |
+| `macro_store.list_macro()` | Discovers sources from `STORE_ROOT/macro/` subdirs |
+| CBOE FRED fallback | Uses `observation_start/end` (not `vintage_date`) |
+
+### Twelve Data timezone fix + hourly re-ingest (2026-06-15)
+
+**Bug:** US ETF hourly bars from Twelve Data arrived in `America/New_York` wall clock but were
+stored as UTC without conversion (~4–5 h timestamp shift, DST-dependent). FX hourly was unaffected.
+
+**Fix:** `twelvedata.py` now passes `timezone=UTC` on all API requests; `_utc_timestamp()` helper
+converts exchange-local strings when needed (tests).
+
+**Re-ingest:** `run_ingest --ohlcv-only --tf 1h --force` — **13/13 symbols OK**, 0 failed (~8.7 min).
+
+**Verification (parquet vs Yahoo hourly, same UTC timestamp):**
+
+| Symbol | Test timestamp (UTC) | Result |
+|---|---|---|
+| SPY | 2024-11-06 20:00 (= 3 PM ET) | ✅ close match |
+| SPY | 2024-07-15 19:00 (= 3 PM EDT) | ✅ close match |
+| GLD | 2024-11-06 20:00 | ✅ close match |
+| QQQ | 2024-08-05 19:00 | ✅ close match |
+| SPY batch | Nov 4–8 2024 | ✅ 35/35 bars match at same UTC ts |
+| EURUSD=X | 2025-01-15 12:00 | ✅ (~2 bp vs Yahoo) |
+| JPY=X | 2025-01-15 12:00 | ✅ (inverted convention) |
+
+**Tests:** 281 passing (incl. `test_exchange_local_converted_to_utc`, `test_requests_timezone_utc`).
 
 ### Open items (low priority)
 

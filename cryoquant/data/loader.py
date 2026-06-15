@@ -16,15 +16,12 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 
-from cryocore.instruments import Symbol
+from cryocore.instruments import Symbol, get_instrument, should_use_twelvedata
 from cryocore.schemas import OHLCVBars
-from cryocore.time import tf_to_seconds
-from cryoquant import config
 from cryoquant.data import catalog as cat
 
 log = logging.getLogger(__name__)
@@ -36,6 +33,10 @@ log = logging.getLogger(__name__)
 def _fetch(symbol: Symbol, tf: str, start: datetime, end: datetime) -> pd.DataFrame:
     """Dispatch to the correct source module, then clean the result."""
     venue = symbol.venue
+    instr = get_instrument(symbol)
+    calendar_id = instr.calendar_id if instr else "nyse"
+    asset_class = instr.asset_class if instr else None
+
     if venue in ("binance.spot",):
         from cryoquant.data.sources.binance_spot import fetch_klines
         raw = fetch_klines(symbol, tf, start, end)
@@ -43,20 +44,7 @@ def _fetch(symbol: Symbol, tf: str, start: datetime, end: datetime) -> pd.DataFr
         from cryoquant.data.sources.binance_perp import fetch_klines
         raw = fetch_klines(symbol, tf, start, end)
     elif venue == "yahoo":
-        # Route hourly requests for equities, commodity ETFs, and FX to Twelve Data
-        # (which offers 6+ years of 1h history vs yfinance's 730-day cap).
-        # Futures (CL=F, GC=F, ES=F, …) stay on yfinance — TD free tier doesn't
-        # support futures symbols reliably.
-        from cryocore.instruments import get_instrument
-        instr = get_instrument(symbol)
-        use_td = (
-            tf in ("1h",)
-            and config.TWELVEDATA_API_KEY
-            and instr is not None
-            and instr.asset_class in ("equity", "fx", "commodity")
-            and not symbol.ticker.endswith("=F")    # exclude continuous futures
-        )
-        if use_td:
+        if should_use_twelvedata(symbol, tf):
             from cryoquant.data.sources.twelvedata import fetch_bars as td_fetch
             raw = td_fetch(symbol, tf, start, end)
         else:
@@ -70,20 +58,16 @@ def _fetch(symbol: Symbol, tf: str, start: datetime, end: datetime) -> pd.DataFr
             "for CBOE VIX use cboe.fetch_vix + macro_store.write_series directly."
         )
 
-    # Apply cleaning pipeline to all fetched data
     from cryoquant.data.cleaning import clean_ohlcv
-    from cryocore.instruments import get_instrument
-    instr = get_instrument(symbol)
-    calendar_id = instr.calendar_id if instr else "nyse"
-    return clean_ohlcv(raw, tf, calendar_id)
+    return clean_ohlcv(raw, tf, calendar_id, asset_class=asset_class)
 
 
 # ---------------------------------------------------------------------------
 # Partition helpers
 # ---------------------------------------------------------------------------
 
-def _partition_path(symbol: Symbol, tf: str, year: int, month: int) -> "Path":
-    from pathlib import Path
+def _partition_path(symbol: Symbol, tf: str, year: int, month: int) -> Path:
+    from cryoquant import config
     venue = symbol.venue
     # Use a filesystem-safe source directory name
     source = venue.replace(".", "_")
@@ -110,6 +94,29 @@ def _write_sentinel(symbol: Symbol, tf: str, year: int, month: int) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     p.touch()
     log.debug("Sentinel written for %s %s year=%d month=%02d", symbol, tf, year, month)
+
+
+def delete_partitions(
+    symbol: Symbol,
+    tf: str,
+    start: datetime,
+    end: datetime,
+) -> int:
+    """Remove on-disk parquet partitions and sentinels for ``symbol``/``tf``.
+
+    Returns the number of files removed.  Used by ``--force`` re-ingest.
+    """
+    periods = pd.period_range(start=start, end=end, freq="M")
+    removed = 0
+    for p in periods:
+        for path in (_partition_path(symbol, tf, p.year, p.month),
+                     _sentinel_path(symbol, tf, p.year, p.month)):
+            if path.exists():
+                path.unlink()
+                removed += 1
+    if removed:
+        log.info("delete_partitions: removed %d file(s) for %s %s", removed, symbol, tf)
+    return removed
 
 
 def _missing_partitions(

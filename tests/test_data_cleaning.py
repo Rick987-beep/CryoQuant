@@ -221,6 +221,29 @@ class TestAuditBars:
         warns = audit_bars(df, "1d")
         assert any(w.code == "PRICE_SPIKE" for w in warns)
 
+    def test_commodity_etf_tolerates_moderate_spike(self):
+        """Commodity ETFs (USO, etc.) use 35% spike threshold even on NYSE calendar."""
+        idx = pd.date_range("2024-01-01", periods=30, freq="D", tz="UTC", name="timestamp")
+        closes = [100.0] * 30
+        closes[15] = 125.0   # 25% jump — below 35% commodity threshold
+        df = pd.DataFrame(
+            {"open": closes, "high": closes, "low": closes, "close": closes, "volume": 1e6},
+            index=idx,
+        )
+        warns = audit_bars(df, "1d", "nyse", asset_class="commodity")
+        assert not any(w.code == "PRICE_SPIKE" for w in warns)
+
+    def test_commodity_etf_flags_large_spike(self):
+        idx = pd.date_range("2024-01-01", periods=30, freq="D", tz="UTC", name="timestamp")
+        closes = [100.0] * 30
+        closes[15] = 140.0   # 40% jump — above 35% commodity threshold
+        df = pd.DataFrame(
+            {"open": closes, "high": closes, "low": closes, "close": closes, "volume": 1e6},
+            index=idx,
+        )
+        warns = audit_bars(df, "1d", "nyse", asset_class="commodity")
+        assert any(w.code == "PRICE_SPIKE" for w in warns)
+
     def test_detects_gap(self):
         # Two bars 30 days apart — large gap
         df = _make_daily(["2024-01-02", "2024-02-02"])
@@ -312,6 +335,15 @@ class TestInstrumentRegistry:
         instr = get_instrument(sym)
         assert instr is not None
         assert instr.meta.get("quote_convention") == "inverted"
+
+    def test_td_ticker_metadata_on_fx(self):
+        from cryocore.instruments import Symbol, td_ticker_info
+        ticker, invert = td_ticker_info(Symbol("yahoo", "EURUSD=X"))
+        assert ticker == "EUR/USD"
+        assert invert is False
+        ticker2, invert2 = td_ticker_info(Symbol("yahoo", "JPY=X"))
+        assert ticker2 == "USD/JPY"
+        assert invert2 is True
 
     def test_cboe_vix_registered(self):
         from cryocore.instruments import Symbol, get_instrument
