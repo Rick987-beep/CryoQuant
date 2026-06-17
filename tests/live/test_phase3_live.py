@@ -1,7 +1,7 @@
 """Phase 3 live integration test.
 
 End-to-end sign-off:
-  12 months BTC 1h → V2SpotFeaturesV1 → ForwardReturnLabeler(24, 0.025, "magnitude")
+  12 months BTC 1h → SpotFeatures → ForwardReturnLabeler(24, 0.025, "magnitude")
   → TabularModel walk-forward (180d train / 30d test / 30d step)
   → register → save → reload → predictions match
   → artefacts: metrics CSV, reliability diagram PNG, registry inspect JSON
@@ -40,7 +40,7 @@ def _artefact_dir() -> Path:
 def test_lgbm_walkforward_on_real_btc(tmp_path, monkeypatch):
     """Full Phase-3 pipeline on 12 months of BTC 1h data."""
     from cryoquant.data.loader import load
-    from cryoquant.features.builders import DatasetRef, V2SpotFeaturesV1
+    from cryoquant.features.builders import DatasetRef, SpotFeatures
     from cryoquant.features import store as store_mod
     from cryoquant.features.labels import ForwardReturnLabeler
     from cryoquant.models.tabular import TabularModel
@@ -66,7 +66,7 @@ def test_lgbm_walkforward_on_real_btc(tmp_path, monkeypatch):
 
     # ── 2. Build features ───────────────────────────────────────────────────
     ref = DatasetRef(sym, "1h")
-    builder = V2SpotFeaturesV1()
+    builder = SpotFeatures()
     X_full = builder.build({ref: df_raw})
     print(f"  Features shape: {X_full.shape}")
     assert X_full.shape[1] >= 12, "Expected at least 12 feature columns"

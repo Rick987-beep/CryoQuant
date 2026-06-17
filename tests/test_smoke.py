@@ -38,5 +38,6 @@ def test_docs_present() -> None:
 
     docs = config.ROOT / "docs"
     assert (docs / "quant_plan.md").exists()
+    assert (docs / "FRAMEWORK_STATUS.md").exists()
     assert (docs / "decisions.md").exists()
     assert (docs / "glossary.md").exists()

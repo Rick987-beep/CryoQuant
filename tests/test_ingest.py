@@ -39,8 +39,45 @@ class TestIngestUniverse:
     def test_iter_ohlcv_symbols(self, sample_universe: Path):
         u = ingest.load_universe(sample_universe)
         pairs = ingest.iter_ohlcv_symbols(u)
-        assert ("yahoo:SPY", "1d") in pairs
-        assert ("yahoo:SPY", "1h") in pairs
+        assert ("yahoo:SPY", "1d", u["equities"]) in pairs
+        assert ("yahoo:SPY", "1h", u["equities"]) in pairs
+
+    def test_iter_ohlcv_with_crypto_and_group_starts(self, tmp_path: Path):
+        data = {
+            "crypto": {
+                "timeframes": ["1d", "1h"],
+                "start_daily": "2017-08-01",
+                "start_hourly": "2020-01-01",
+                "symbols": ["binance.spot:BTCUSDT", "binance.spot:ETHUSDT"],
+            },
+        }
+        path = tmp_path / "universe.yaml"
+        path.write_text(yaml.dump(data))
+        u = ingest.load_universe(path)
+        pairs = ingest.iter_ohlcv_symbols(u)
+        assert len(pairs) == 4
+        assert ("binance.spot:ETHUSDT", "1h", u["crypto"]) in pairs
+
+    def test_group_start_for_tf(self):
+        group = {"start_daily": "2017-08-01", "start_hourly": "2020-01-01"}
+        d = ingest._start_for_tf(
+            "1d", start_override=None,
+            daily_start="2010-01-01", hourly_start="2020-01-01", group=group,
+        )
+        h = ingest._start_for_tf(
+            "1h", start_override=None,
+            daily_start="2010-01-01", hourly_start="2020-01-01", group=group,
+        )
+        assert d.year == 2017 and d.month == 8
+        assert h.year == 2020
+
+    def test_cli_start_overrides_group(self):
+        group = {"start_daily": "2017-08-01"}
+        d = ingest._start_for_tf(
+            "1d", start_override="2015-01-01",
+            daily_start="2010-01-01", hourly_start="2020-01-01", group=group,
+        )
+        assert d.year == 2015
 
     def test_iter_macro_symbols(self, sample_universe: Path):
         u = ingest.load_universe(sample_universe)

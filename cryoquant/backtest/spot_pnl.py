@@ -12,7 +12,6 @@ Public interface::
 from __future__ import annotations
 
 import logging
-import math
 from datetime import datetime
 from typing import Literal
 
@@ -120,16 +119,13 @@ def simulate(
         last_exit = exit_
 
     if not entry_idx_list:
-        # No trades fired
-        empty_trades = pd.DataFrame(
-            columns=["entry_ts", "exit_ts", "entry_price", "exit_price",
-                     "pnl_pct", "fee_pct"]
-        )
+        from cryoquant.backtest.metrics import empty_metrics
+        from cryoquant.backtest.trades import _empty_enriched
         equity = pd.Series(np.ones(n), index=bars.index, name="equity")
         return SpotResult(
             equity=equity,
-            trades=empty_trades,
-            metrics=_empty_metrics(),
+            trades=_empty_enriched(),
+            metrics=empty_metrics(),
         )
 
     entry_idx = np.array(entry_idx_list)
@@ -169,53 +165,19 @@ def simulate(
     equity = pd.Series(equity_arr, index=bars.index, name="equity")
 
     # ── Aggregate metrics ────────────────────────────────────────────────────
-    metrics = _compute_metrics(pnl_arr, equity_arr)
+    from cryoquant.backtest.metrics import compute_metrics, empty_metrics
+    from cryoquant.backtest.trades import enrich_trades
 
-    return SpotResult(equity=equity, trades=trades_df, metrics=metrics)
+    enriched = enrich_trades(trades_df, equity)
+    metrics = compute_metrics(enriched, equity)
+
+    return SpotResult(equity=equity, trades=enriched, metrics=metrics)
 
 
 # ---------------------------------------------------------------------------
-# Metric helpers
+# Metric helpers (kept for backward compatibility; delegate to framework)
 # ---------------------------------------------------------------------------
 
 def _empty_metrics() -> dict:
-    return {
-        "n_trades": 0,
-        "total_return": 0.0,
-        "win_rate": float("nan"),
-        "sharpe": float("nan"),
-        "max_drawdown": 0.0,
-        "expectancy": float("nan"),
-    }
-
-
-def _compute_metrics(pnl_arr: np.ndarray, equity_arr: np.ndarray) -> dict:
-    n = len(pnl_arr)
-    if n == 0:
-        return _empty_metrics()
-
-    total_return = float(np.prod(1.0 + pnl_arr) - 1.0)
-    win_rate = float(np.mean(pnl_arr > 0))
-    expectancy = float(np.mean(pnl_arr))
-
-    # Annualised Sharpe (assuming 1h bars, trades roughly daily)
-    if n > 1 and np.std(pnl_arr) > 0:
-        # Scale to approximate annualisation using actual obs count
-        periods_per_year = 252.0  # trading days
-        sharpe = float(np.mean(pnl_arr) / np.std(pnl_arr, ddof=1) * math.sqrt(periods_per_year))
-    else:
-        sharpe = float("nan")
-
-    # Max drawdown from equity curve
-    peak = np.maximum.accumulate(equity_arr)
-    drawdowns = (equity_arr - peak) / peak
-    max_drawdown = float(np.min(drawdowns))
-
-    return {
-        "n_trades": n,
-        "total_return": total_return,
-        "win_rate": win_rate,
-        "sharpe": sharpe,
-        "max_drawdown": max_drawdown,
-        "expectancy": expectancy,
-    }
+    from cryoquant.backtest.metrics import empty_metrics
+    return empty_metrics()

@@ -41,7 +41,7 @@ def _artefact_dir() -> Path:
 def test_publish_lgbm_probsignal_end_to_end(tmp_path, monkeypatch):
     """Full Phase-4 pipeline on 12 months of BTC 1h data."""
     from cryoquant.data.loader import load
-    from cryoquant.features.builders import DatasetRef, V2SpotFeaturesV1
+    from cryoquant.features.builders import DatasetRef, SpotFeatures
     from cryoquant.features import store as store_mod
     from cryoquant.features.labels import ForwardReturnLabeler
     from cryoquant.models.tabular import TabularModel
@@ -70,7 +70,7 @@ def test_publish_lgbm_probsignal_end_to_end(tmp_path, monkeypatch):
 
     # ── 2. Build features ───────────────────────────────────────────────────
     ref = DatasetRef(sym, "1h")
-    builder = V2SpotFeaturesV1()
+    builder = SpotFeatures()
     X_full = builder.build({ref: df_raw})
     print(f"  Features shape: {X_full.shape}")
 

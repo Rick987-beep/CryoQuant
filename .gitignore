@@ -40,3 +40,11 @@ analyses/*/reports/
 # Local config (paths, api keys)
 .env
 cryoquant/config.local.py
+
+# Private analyses — local only, not published to GitHub
+analyses/hedged_btc/
+analyses/trend_following/
+analyses/quickwintrend/
+tests/test_hedged_btc_phase2.py
+tests/test_quickwintrend.py
+tests/live/test_quickwintrend_live.py

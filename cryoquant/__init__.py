@@ -3,4 +3,4 @@
 Phase 0: skeleton only. See docs/quant_plan.md.
 """
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"

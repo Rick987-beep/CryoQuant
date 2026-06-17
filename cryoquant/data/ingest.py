@@ -63,11 +63,14 @@ def iter_ohlcv_symbols(
     universe: dict[str, Any],
     filter_tickers: list[str] | None = None,
     filter_tfs: list[str] | None = None,
-) -> list[tuple[str, str]]:
-    """Return ``(symbol_str, tf)`` pairs for all non-macro universe groups."""
-    results: list[tuple[str, str]] = []
-    for group_name, group in universe.items():
-        if not isinstance(group, dict) or group_name.startswith(MACRO_GROUP_PREFIX):
+) -> list[tuple[str, str, dict[str, Any]]]:
+    """Return ``(symbol_str, tf, group)`` for all non-macro universe groups.
+
+    *group* is the YAML group dict (may contain ``start_daily`` / ``start_hourly``).
+    """
+    results: list[tuple[str, str, dict[str, Any]]] = []
+    for _group_name, group in universe.items():
+        if not isinstance(group, dict) or _group_name.startswith(MACRO_GROUP_PREFIX):
             continue
         tfs = group.get("timeframes", ["1d"])
         for sym_str in group.get("symbols", []):
@@ -76,7 +79,7 @@ def iter_ohlcv_symbols(
             for tf in tfs:
                 if filter_tfs and tf not in filter_tfs:
                     continue
-                results.append((sym_str, tf))
+                results.append((sym_str, tf, group))
     return results
 
 
@@ -102,9 +105,15 @@ def _start_for_tf(
     start_override: str | None,
     daily_start: str,
     hourly_start: str,
+    group: dict[str, Any] | None = None,
 ) -> datetime:
     if start_override:
         return datetime.strptime(start_override, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    if group:
+        if tf == "1d" and group.get("start_daily"):
+            daily_start = group["start_daily"]
+        elif tf != "1d" and group.get("start_hourly"):
+            hourly_start = group["start_hourly"]
     default = daily_start if tf == "1d" else hourly_start
     return datetime.strptime(default, "%Y-%m-%d").replace(tzinfo=timezone.utc)
 
@@ -196,10 +205,13 @@ def ingest_macro(
 
 def run_audit(
     universe: dict[str, Any],
-    start: datetime,
     end: datetime,
     filter_tickers: list[str] | None = None,
     filter_tfs: list[str] | None = None,
+    *,
+    start_override: str | None = None,
+    daily_start: str = DEFAULT_DAILY_START,
+    hourly_start: str = DEFAULT_HOURLY_START,
 ) -> int:
     """Run ``audit_bars`` on ingested OHLCV symbols.  Returns total issue count."""
     from cryoquant.data import loader as ldr
@@ -207,10 +219,16 @@ def run_audit(
 
     pairs = iter_ohlcv_symbols(universe, filter_tickers, filter_tfs)
     issues_total = 0
-    for sym_str, tf in pairs:
+    for sym_str, tf, group in pairs:
         symbol = Symbol.parse(sym_str)
         try:
-            df = ldr.load(symbol, tf, start, end)
+            audit_start = _start_for_tf(
+                tf, start_override=start_override,
+                daily_start=daily_start,
+                hourly_start=hourly_start,
+                group=group,
+            )
+            df = ldr.load(symbol, tf, audit_start, end)
             instr = get_instrument(symbol)
             cal = instr.calendar_id if instr else "nyse"
             asset_class = instr.asset_class if instr else None
@@ -261,11 +279,13 @@ def run_ingest(
     if not macro_only:
         pairs = iter_ohlcv_symbols(universe, symbols, tfs)
         log.info("Ingesting %d OHLCV (symbol, tf) pairs …", len(pairs))
-        for sym_str, tf in pairs:
+        for sym_str, tf, group in pairs:
             ok = ingest_ohlcv(
                 sym_str, tf,
-                _start_for_tf(tf, start_override=start, daily_start=daily_start,
-                              hourly_start=hourly_start),
+                _start_for_tf(
+                    tf, start_override=start, daily_start=daily_start,
+                    hourly_start=hourly_start, group=group,
+                ),
                 end_dt,
                 force=force, dry_run=dry_run,
             )
@@ -289,10 +309,10 @@ def run_ingest(
 
     if audit and not dry_run:
         log.info("Running post-ingest audit …")
-        audit_start = _start_for_tf(
-            "1d", start_override=start, daily_start=daily_start, hourly_start=hourly_start
+        result.audit_issues = run_audit(
+            universe, end_dt, symbols, tfs,
+            start_override=start, daily_start=daily_start, hourly_start=hourly_start,
         )
-        result.audit_issues = run_audit(universe, audit_start, end_dt, symbols, tfs)
 
     log.info("Done: %d/%d succeeded, %d failed.", result.ok, result.total, result.failed)
     return result

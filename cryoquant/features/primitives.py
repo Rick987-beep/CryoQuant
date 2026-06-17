@@ -12,7 +12,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-
 # ---------------------------------------------------------------------------
 # Moving averages
 # ---------------------------------------------------------------------------
@@ -194,3 +193,263 @@ def htf_align(base_df: pd.DataFrame, htf_series: pd.Series, *, htf: str) -> pd.S
     base = base.sort_values("base_ts").reset_index(drop=True)
     joined = pd.merge_asof(base, feed, left_on="base_ts", right_on="close_ts", direction="backward")
     return pd.Series(joined["value"].to_numpy(), index=base_df.index, name=htf_series.name)
+
+
+# ---------------------------------------------------------------------------
+# Trend indicators (new in Phase 2)
+# ---------------------------------------------------------------------------
+
+def donchian(close: pd.Series, n: int) -> pd.DataFrame:
+    """Donchian channel: N-bar rolling high/low of the *previous* bar's close.
+
+    The shift-1 is applied internally — callers do NOT need to shift again.
+    Upper and lower represent the breakout levels known at bar open.
+    """
+    shifted = close.shift(1)
+    upper = shifted.rolling(n, min_periods=n).max()
+    lower = shifted.rolling(n, min_periods=n).min()
+    mid = (upper + lower) / 2.0
+    return pd.DataFrame({"upper": upper, "lower": lower, "mid": mid}, index=close.index)
+
+
+def adx(df: pd.DataFrame, n: int = 14) -> pd.Series:
+    """Average Directional Index (Wilder-smoothed ADX), range 0–100.
+
+    Builds on existing ``tr`` / ``rma`` primitives.
+    """
+    high = df["high"]
+    low = df["low"]
+    prev_high = high.shift(1)
+    prev_low = low.shift(1)
+
+    dm_plus_raw = high - prev_high
+    dm_minus_raw = prev_low - low
+
+    dm_plus = np.where(
+        (dm_plus_raw > dm_minus_raw) & (dm_plus_raw > 0), dm_plus_raw, 0.0
+    )
+    dm_minus = np.where(
+        (dm_minus_raw > dm_plus_raw) & (dm_minus_raw > 0), dm_minus_raw, 0.0
+    )
+
+    dm_plus_s = pd.Series(dm_plus, index=high.index)
+    dm_minus_s = pd.Series(dm_minus, index=high.index)
+    tr_s = tr(df)
+
+    smooth_tr = rma(tr_s, n)
+    smooth_plus = rma(dm_plus_s, n)
+    smooth_minus = rma(dm_minus_s, n)
+
+    di_plus = 100.0 * smooth_plus / smooth_tr.replace(0, np.nan)
+    di_minus = 100.0 * smooth_minus / smooth_tr.replace(0, np.nan)
+
+    di_sum = (di_plus + di_minus).replace(0, np.nan)
+    dx = 100.0 * (di_plus - di_minus).abs() / di_sum
+    return rma(dx, n).rename("adx")
+
+
+def keltner(df: pd.DataFrame, n: int = 20, mult: float = 1.5) -> pd.DataFrame:
+    """Keltner Channel: EMA(n) ± mult × ATR(n).
+
+    Returns DataFrame with columns ``upper`` and ``lower``.
+    """
+    basis = ema(df["close"], n)
+    band = mult * atr(df, n)
+    return pd.DataFrame({"upper": basis + band, "lower": basis - band}, index=df.index)
+
+
+def supertrend(df: pd.DataFrame, n: int = 10, mult: float = 3.0) -> pd.DataFrame:
+    """ATR-based Supertrend indicator (Pine v5–faithful).
+
+    Returns DataFrame with columns:
+      ``value``     — the active band level (support or resistance)
+      ``direction`` — +1 (bullish) or −1 (bearish)
+    """
+    high = df["high"].to_numpy(dtype=float)
+    low = df["low"].to_numpy(dtype=float)
+    close = df["close"].to_numpy(dtype=float)
+
+    hl2 = (high + low) / 2.0
+    atr_vals = atr(df, n).to_numpy(dtype=float)
+
+    basic_upper = hl2 + mult * atr_vals
+    basic_lower = hl2 - mult * atr_vals
+
+    final_upper = np.full(len(close), np.nan)
+    final_lower = np.full(len(close), np.nan)
+    direction = np.full(len(close), np.nan)
+    value = np.full(len(close), np.nan)
+
+    # Find first bar where ATR is valid
+    first = next((i for i, v in enumerate(atr_vals) if not np.isnan(v)), None)
+    if first is None:
+        return pd.DataFrame({"value": value, "direction": direction}, index=df.index)
+
+    for i in range(first, len(close)):
+        if i == first:
+            final_upper[i] = basic_upper[i]
+            final_lower[i] = basic_lower[i]
+            direction[i] = 1.0
+        else:
+            # Lower band: ratchet upward while price stays above
+            final_lower[i] = (
+                max(basic_lower[i], final_lower[i - 1])
+                if close[i - 1] > final_lower[i - 1]
+                else basic_lower[i]
+            )
+            # Upper band: ratchet downward while price stays below
+            final_upper[i] = (
+                min(basic_upper[i], final_upper[i - 1])
+                if close[i - 1] < final_upper[i - 1]
+                else basic_upper[i]
+            )
+            # Direction flip
+            prev_dir = direction[i - 1]
+            if prev_dir == -1.0 and close[i] > final_upper[i - 1]:
+                direction[i] = 1.0
+            elif prev_dir == 1.0 and close[i] < final_lower[i - 1]:
+                direction[i] = -1.0
+            else:
+                direction[i] = prev_dir
+
+        value[i] = final_lower[i] if direction[i] == 1.0 else final_upper[i]
+
+    return pd.DataFrame(
+        {"value": pd.Series(value, index=df.index),
+         "direction": pd.Series(direction, index=df.index)},
+    )
+
+
+def macd(
+    close: pd.Series,
+    fast: int = 12,
+    slow: int = 26,
+    signal_period: int = 9,
+) -> pd.DataFrame:
+    """MACD line, signal line, and histogram.
+
+    Returns DataFrame with columns ``macd``, ``signal``, ``hist``.
+    """
+    macd_line = ema(close, fast) - ema(close, slow)
+    signal_line = ema(macd_line, signal_period)
+    histogram = macd_line - signal_line
+    return pd.DataFrame(
+        {"macd": macd_line, "signal": signal_line, "hist": histogram},
+        index=close.index,
+    )
+
+
+def roc(close: pd.Series, n: int) -> pd.Series:
+    """Rate of Change: (close / close.shift(n)) − 1."""
+    return (close / close.shift(n) - 1.0).rename(f"roc_{n}")
+
+
+# ---------------------------------------------------------------------------
+# Statistical / advanced trend primitives
+# ---------------------------------------------------------------------------
+
+def linear_reg_slope(s: pd.Series, n: int) -> pd.Series:
+    """OLS slope of s over a rolling n-bar window (raw units per bar).
+
+    To convert to a normalised % return equivalent in the caller::
+
+        slope_pct = linear_reg_slope(close, n) / close * n * 100
+    """
+    x = np.arange(n, dtype=float)
+    x -= x.mean()
+    ss_x = float((x ** 2).sum())
+
+    def _slope(y: np.ndarray) -> float:
+        if np.isnan(y).any():
+            return np.nan
+        y_dm = y - y.mean()
+        return float(np.dot(x, y_dm) / ss_x)
+
+    return s.rolling(n, min_periods=n).apply(_slope, raw=True).rename("lin_slope")
+
+
+def hurst(close: pd.Series, n: int = 64) -> pd.Series:
+    """Hurst exponent (R/S analysis) over a rolling window.
+
+    H > 0.5 → trending (persistent); H ≈ 0.5 → random walk; H < 0.5 → mean-reverting.
+
+    For each lag size the window is divided into non-overlapping sub-windows of
+    that size; R/S is averaged across sub-windows before taking log, giving a
+    more robust slope estimate than single-sub-window R/S.
+
+    .. warning::
+        This function is slow (O(n · window) per call).
+        Always use it inside a ``@cached`` FeatureBuilder.
+    """
+    log_ret = np.log(close / close.shift(1))
+
+    def _rs_hurst(window: np.ndarray) -> float:
+        if np.isnan(window).any():
+            return np.nan
+        lags, log_rs_means = [], []
+        for lag in [4, 8, 16, 32]:
+            n_sub = len(window) // lag
+            if n_sub < 2:
+                break
+            rs_subs = []
+            for k in range(n_sub):
+                sub = window[k * lag : (k + 1) * lag]
+                m = sub.mean()
+                cumdev = np.cumsum(sub - m)
+                R = cumdev.max() - cumdev.min()
+                S = sub.std(ddof=0)
+                if S < 1e-12:
+                    continue
+                rs_subs.append(R / S)
+            if not rs_subs:
+                continue
+            lags.append(np.log(lag))
+            log_rs_means.append(np.log(np.mean(rs_subs)))
+        if len(lags) < 2:
+            return np.nan
+        slope, _ = np.polyfit(lags, log_rs_means, 1)
+        return float(np.clip(slope, 0.0, 1.0))
+
+    return log_ret.rolling(n, min_periods=n).apply(_rs_hurst, raw=True).rename("hurst")
+
+
+# ---------------------------------------------------------------------------
+# Volume primitives
+# ---------------------------------------------------------------------------
+
+def obv(close: pd.Series, volume: pd.Series) -> pd.Series:
+    """On-Balance Volume: cumulative signed volume.
+
+    Positive volume is added when close > prev close; subtracted otherwise.
+    """
+    direction = np.sign(close.diff()).fillna(0)
+    return (direction * volume).cumsum().rename("obv")
+
+
+def vwap(df: pd.DataFrame) -> pd.Series:
+    """Volume-Weighted Average Price with a daily reset at midnight UTC.
+
+    For intraday bars this is the true running VWAP; for daily bars it
+    degenerates to the typical price (H+L+C)/3 (volume cancels out).
+    """
+    tp = (df["high"] + df["low"] + df["close"]) / 3.0
+    dates = df.index.normalize()
+    tp_vol = tp * df["volume"]
+    result = tp_vol.groupby(dates).cumsum() / df["volume"].groupby(dates).cumsum()
+    return result.rename("vwap")
+
+
+# ---------------------------------------------------------------------------
+# Cross-series
+# ---------------------------------------------------------------------------
+
+def relative_strength(a: pd.Series, b: pd.Series, n: int) -> pd.Series:
+    """RS of series a vs benchmark b over n bars.
+
+    ``RS = a.pct_change(n) / b.pct_change(n)``
+
+    Values > 1 mean a outperformed b over the period; < 1 means underperformed.
+    Returns NaN where b's return is zero.
+    """
+    b_ret = b.pct_change(n).replace(0, np.nan)
+    return (a.pct_change(n) / b_ret).rename("rs")

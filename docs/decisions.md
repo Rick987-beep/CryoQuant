@@ -134,6 +134,62 @@ accumulate as flat files in the workspace root, polluting the library codebase.
 `reports/` directory still works locally; just never committed. Future analyses each get their
 own named folder.
 
+## [2026-06-17] D18 — Multi-asset data layer (Yahoo / Twelve Data / FRED / CBOE)
+**Context:** The `analyses/trend_following` workstream required data beyond Binance crypto:
+34 daily Yahoo instruments (ETFs, futures, FX), 13 hourly instruments via Twelve Data free
+tier, 16 FRED macro series, and CBOE VIX OHLC history.
+**Decision:**
+- Yahoo Finance (`yfinance`) for daily OHLCV — free, 2010+ depth, ETF proxies preferred over `=F` futures.
+- Twelve Data REST API for hourly — 6+ year history vs yfinance's 730-day cap; loader auto-routes `yahoo` + `1h` there.
+- FRED `fredapi` for macro (25+ aliases); CBOE CSV for VIX OHLC with FRED close-only fallback.
+- Routing encoded in `cryocore.instruments.should_use_twelvedata()` — callers don't branch.
+- `cryoquant.data.ingest` provides a generic YAML-universe orchestrator; each analysis supplies `universe.yaml` + a thin CLI wrapper.
+**Consequences:** 40+ instruments registered in `cryocore.instruments`. `yfinance` added as
+a dependency (not yet in `pyproject.toml` — tracked as open TODO). FX inverted-pair
+convention (JPY=X, CAD=X) handled in `cleaning.py`. New `FX24_5` calendar in `cryocore`.
+
+## [2026-06-17] D19 — Sweep backtest infrastructure extracted to framework
+**Context:** `analyses/quickwintrend` required a generic multi-run sweep pipeline — a
+leaderboard aggregator, canonical trade schema, composite scoring, and a bundle I/O layout.
+These capabilities had no analysis-specific logic.
+**Decision:** Five new modules added to `cryoquant.backtest`:
+- `metrics.py` — single source of truth for all scalar performance metrics.
+- `trades.py` — canonical `TRADE_COLUMNS` schema and `enrich_trades`.
+- `scoring.py` — injectable `ScoringConfig` + percentile-composite `score_leaderboard`.
+- `bundle.py` — `RunBundle` dataclass + `write_bundle` / `load_bundle` (parquet + JSON layout).
+- `sweep_collector.py` — `collect_runs` with injectable simulator, run-ID, and params functions.
+Analysis packages supply only study-specific weights (`scoring_config.py`) and parameter grids (`sweep.py`).
+**Consequences:** `spot_pnl.simulate` refactored to delegate to `metrics` and `enrich_trades`.
+All five modules exported from `cryoquant.backtest.__init__`.
+
+## [2026-06-17] D20 — Channel-breakout simulator promoted as `cryoquant.backtest.breakout_sim`
+**Context:** `analyses/quickwintrend/turtle_simulate.py` implemented a fully generic
+Donchian-channel-breakout simulator (dynamic trailing exit, ATR hard stop, long/short/both
+directions).  The name "turtle" referenced the 1980s Turtle Traders and was not descriptive.
+**Decision:**
+- Promoted to `cryoquant/backtest/breakout_sim.py` as `simulate_breakout(bars, config)`.
+- 11-argument function signature replaced with a `BreakoutConfig` frozen dataclass.
+- Monolithic body decomposed into `_precompute`, `_run_trade_loop`, `_build_equity_curve` private helpers.
+- Entry-filter helpers (`make_adx_filter`, `make_ema200_filter`) moved to `cryoquant/features/filters.py` as `adx_filter` and `ema_trend_filter` — feature logic belongs in the features layer.
+- `analyses/quickwintrend/turtle_simulate.py` replaced with a deprecation shim that re-exports from the framework.
+- `analyses/quickwintrend/run_sweep.py` updated to import from the canonical locations.
+**Consequences:** `simulate_breakout` is now the second simulator alongside `simulate` (fixed-hold); both return `SpotResult` and are compatible with all robustness and reporting utilities.
+
+## [2026-06-17] D21 — Trend feature builders promoted to `cryoquant.features.trend_builders`
+**Context:** `analyses/trend_following/features.py` implemented `TrendFeatures`, `MacroFeatures`,
+and `CrossAssetFeatures` — all following the `FeatureBuilder` protocol, using `@cached`, and
+depending only on registered instruments and framework primitives.
+**Decision:** All three builders and their composite functions (`trend_regime`, `vol_expansion`,
+`friday_monday_stress`) promoted to `cryoquant/features/trend_builders.py`.
+Two issues fixed during promotion:
+- `rsi_14` and `adx_14` existed in both `group_a` and `group_b` dicts; `group_a` copies
+  removed with an explanatory comment.
+- `_BENCHMARK_TICKERS` promoted from a local variable inside `_compute_cross_asset_features`
+  to a module-level constant.
+`analyses/trend_following/features.py` replaced with a thin re-export shim.
+**Consequences:** Framework now ships three production-ready Tier-2 feature builders for
+trend research.  Analysis scripts importing from the local path continue to work unchanged.
+
 ## [2026-05-20] M1 — v1.0 first release complete
 **Context:** All six phases (0–5) of the implementation spec are implemented and tested.
 The first end-to-end signal (EMA 7/21 daily crossover on BTCUSDT) is running.

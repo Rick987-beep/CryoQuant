@@ -244,6 +244,17 @@ class TestAuditBars:
         warns = audit_bars(df, "1d", "nyse", asset_class="commodity")
         assert any(w.code == "PRICE_SPIKE" for w in warns)
 
+    def test_crypto_tolerates_moderate_spike(self):
+        idx = pd.date_range("2024-01-01", periods=30, freq="h", tz="UTC", name="timestamp")
+        closes = [100.0] * 30
+        closes[15] = 125.0   # 25% — below 35% crypto threshold
+        df = pd.DataFrame(
+            {"open": closes, "high": closes, "low": closes, "close": closes, "volume": 1e6},
+            index=idx,
+        )
+        warns = audit_bars(df, "1h", "crypto_24_7", asset_class="crypto")
+        assert not any(w.code == "PRICE_SPIKE" for w in warns)
+
     def test_detects_gap(self):
         # Two bars 30 days apart — large gap
         df = _make_daily(["2024-01-02", "2024-02-02"])

@@ -1,4 +1,4 @@
-"""Phase 2 unit tests: primitives, calendar features, V2SpotFeaturesV1, labels, cache."""
+"""Phase 2 unit tests: primitives, calendar features, SpotFeatures, labels, cache."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

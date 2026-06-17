@@ -43,7 +43,7 @@ def test_full_pipeline_live(tmp_path, monkeypatch):
         pytest.skip("Set CRYOQUANT_FULL_LIVE=1 to run the full pipeline live test")
 
     from cryoquant.data.loader import load
-    from cryoquant.features.builders import DatasetRef, V2SpotFeaturesV1
+    from cryoquant.features.builders import DatasetRef, SpotFeatures
     from cryoquant.features import store as store_mod
     from cryoquant.features.labels import ForwardReturnLabeler
     from cryoquant.models.tabular import TabularModel
@@ -70,7 +70,7 @@ def test_full_pipeline_live(tmp_path, monkeypatch):
 
     # ── 2. Features + labels ────────────────────────────────────────────────
     ref = DatasetRef(sym, "1h")
-    builder = V2SpotFeaturesV1()
+    builder = SpotFeatures()
     X_full = builder.build({ref: df_raw})
 
     labeler = ForwardReturnLabeler(horizon_h=24, threshold=2.5, direction="magnitude")
@@ -155,7 +155,7 @@ def test_option_lookup_real_chains(tmp_path, monkeypatch):
         pytest.skip(f"Not enough option chain dates ({len(dates)} < 10)")
 
     from cryoquant.data.loader import load
-    from cryoquant.features.builders import DatasetRef, V2SpotFeaturesV1
+    from cryoquant.features.builders import DatasetRef, SpotFeatures
     from cryoquant.features import store as store_mod
     from cryoquant.models.baselines import make_pullback
     from cryoquant.signals.from_model import bool_from_rule
@@ -184,7 +184,7 @@ def test_option_lookup_real_chains(tmp_path, monkeypatch):
     print(f"  Loaded {len(df_raw):,} bars  {df_raw.index[0].date()} → {df_raw.index[-1].date()}")
 
     ref = DatasetRef(sym, "1h")
-    builder = V2SpotFeaturesV1()
+    builder = SpotFeatures()
     X_full = builder.build({ref: df_raw})
     print(f"  Features: {X_full.shape}")
 

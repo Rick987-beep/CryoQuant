@@ -1,6 +1,6 @@
 [project]
 name = "cryoquant"
-version = "0.0.1"
+version = "0.1.0"
 description = "Asset-agnostic quant pipeline: data → features → models → calibrated signals → backtest."
 requires-python = ">=3.12"
 readme = "README.md"

@@ -35,7 +35,7 @@ def _price_spike_threshold(calendar_id: str, asset_class: AssetClass) -> float:
     """Calendar- and asset-class-aware close-to-close spike threshold."""
     if asset_class == "fx" or calendar_id in ("fx_24_5", "fx_eur"):
         return 0.05
-    if asset_class == "commodity" or calendar_id == "cme_futures":
+    if asset_class in ("commodity", "crypto") or calendar_id == "cme_futures":
         return 0.35
     return 0.20
 

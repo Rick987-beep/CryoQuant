@@ -91,6 +91,9 @@ _DEFAULT_INSTRUMENTS: list[Instrument] = [
     Instrument(Symbol("yahoo", "DIA"),   "equity",    "USD", "nyse"),
     Instrument(Symbol("yahoo", "IWM"),   "equity",    "USD", "nyse"),
 
+    # US bond ETFs (Yahoo)
+    Instrument(Symbol("yahoo", "TLT"),   "equity",    "USD", "nyse"),  # iShares 20yr Treasury
+
     # US sector ETFs (Yahoo)
     Instrument(Symbol("yahoo", "XLK"),   "equity",    "USD", "nyse"),
     Instrument(Symbol("yahoo", "XLE"),   "equity",    "USD", "nyse"),
