@@ -117,14 +117,33 @@ A named, self-contained investigation that produces a concrete answer or artefac
 
 - A backtest script (e.g. `backtest.py`) — the entry point
 - An exploration notebook (e.g. `exploration.ipynb`) — interactive parameter sweeps
-- A `reports/` subfolder — generated HTML, CSVs, charts (gitignored)
+- A `reports/` subfolder — generated HTML, JSON manifests, phase summaries (gitignored)
+- Optional `bundles/` — RunBundle sweep output (gitignored)
 
 The `analyses/` tree is the "use" layer of CryoQuant; the `cryoquant/` package is the
 "core" library. Keep them separate. Framework code belongs in `cryoquant/`; one-off exploration
 belong in `analyses/`.
 
 Current analyses:
+- `analyses/cdx/` — CDX.NA.IG credit study (reference reporting implementation)
 - `analyses/ema_cross_7_21/` — EMA 7/21 daily crossover on BTCUSDT
+
+## RunBundle
+
+Machine-readable sweep output directory produced by `cryoquant.backtest.bundle.write_bundle`.
+Standard layout: `meta.json`, `leaderboard.{parquet,csv}`, `trades.parquet`,
+`equity_daily.parquet`, optional `report.html`. See [how_to_report.md](how_to_report.md).
+
+## StudyManifest
+
+Study-level `manifest.json` under `analyses/<name>/reports/` — indexes bundles, phase
+summaries, highlights, and links to index HTML. Built with `cryoquant.reporting.build_manifest`.
+
+## Report tier
+
+Named output format in the reporting format menu (e.g. `bundle`, `table_html`, `summary_json`,
+`chart_html`, `study_html`, `notebook_html`, `tearsheet`). Guidelines only — not enforced.
+See [how_to_report.md](how_to_report.md).
 
 ## Path A / B / C (workflow)
 

@@ -1,5 +1,9 @@
 # CDX.NA.IG Multi-Overlay — Results
 
+> **Reporting reference:** This study implements the full artifact layout described in
+> [`docs/how_to_report.md`](../../docs/how_to_report.md) — bundles, phase JSON, manifest,
+> index HTML, narrative and pitch reports.
+
 **Last updated:** 2026-06-24  
 **Data policy:** Manual `cdx_na_ig_clean.csv` (no live API).
 

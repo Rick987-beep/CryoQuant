@@ -42,6 +42,10 @@ class RunBundle:
         the keys documented in the plan: ``study``, ``n_runs``, ``scoring``.
         ``bundle_version`` and ``created_at`` are added automatically by
         ``write_bundle`` if absent.
+
+        Recommended optional keys (see ``docs/how_to_report.md``):
+        ``sample`` (start/end/n_bars), ``data_sources``, ``warnings``,
+        ``git_commit``, ``config_hash``.
     leaderboard:
         Scored and ranked leaderboard DataFrame; one row per run.
     trades:

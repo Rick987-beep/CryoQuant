@@ -51,7 +51,7 @@ You should be comfortable with **Python 3.12**, **pandas**, and basic backtest c
 - **Label bars** for supervised learning (forward returns, triple-barrier, regime tags)
 - **Train models** — rule baselines, LightGBM + isotonic calibration, purged k-fold / walk-forward CV
 - **Emit signals** — `BoolSignal`, `ScoreSignal`, `StateSignal`, `ProbSignal` with a shared protocol
-- **Backtest** — vectorised spot simulation, option leg evaluation, HTML reports, sweep leaderboards, robustness stats (deflated Sharpe, bootstrap CI)
+- **Backtest** — vectorised spot simulation, option leg evaluation, HTML reports, sweep leaderboards, study manifests, robustness stats (deflated Sharpe, bootstrap CI)
 - **Align heterogeneous tracks** — `align_series`, `load_track`, `DataPanel` for quick studies and multi-source ML
 
 Offline test suite: **500+ tests** green by default (live/network tests opt-in via pytest markers).
@@ -90,7 +90,7 @@ flowchart LR
 | Package | Role |
 |---|---|
 | [`cryocore`](cryocore/) | Shared types — `Symbol`, `Instrument`, calendars, UTC time helpers, cross-repo Pydantic schemas |
-| [`cryoquant`](cryoquant/) | Pipeline — `data`, `features`, `models`, `signals`, `backtest`, `cli` |
+| [`cryoquant`](cryoquant/) | Pipeline — `data`, `features`, `models`, `signals`, `backtest`, `reporting`, `cli` |
 
 Domain-specific studies (CDX credit, custom fund specs, etc.) live under [`analyses/`](analyses/) and are **not** part of the core library API.
 
@@ -291,6 +291,7 @@ Start at **[docs/README.md](docs/README.md)**.
 |---|---|
 | [how_to_use.md](docs/how_to_use.md) | Full walkthrough — setup, paths A/B/C, loading, features, ML, backtest |
 | [how_to_build_a_study.md](docs/how_to_build_a_study.md) | Cookbook — new data track → features → signal → backtest |
+| [how_to_report.md](docs/how_to_report.md) | Artifact layout — bundles, manifests, HTML tiers, optional exports |
 | [glossary.md](docs/glossary.md) | Terms — `Symbol`, `DatasetRef`, `DataPanel`, paths, etc. |
 
 Internal planning history (phase specs, ADRs) is archived under [docs/archive/](docs/archive/) for contributors.

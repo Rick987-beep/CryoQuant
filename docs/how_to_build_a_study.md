@@ -282,6 +282,39 @@ Options follow-through (Deribit chains): [how_to_use.md §11](how_to_use.md#11-o
 
 ---
 
+## 5b. Publish artifacts
+
+After backtesting, write human- and machine-readable outputs under `analyses/<name>/reports/`.
+See [how_to_report.md](how_to_report.md) for the full format menu.
+
+**Path A — minimum:**
+
+```python
+from cryoquant.backtest.reports import render_spot_result
+
+render_spot_result(result, "analyses/my_study/reports/run_001.html")
+```
+
+**Path B — sweep bundle:**
+
+```python
+from cryoquant.backtest.bundle import write_bundle
+from cryoquant.backtest.reports import render_sweep_leaderboard
+
+write_bundle("analyses/my_study/bundles/main", bundle)
+render_sweep_leaderboard(bundle, "analyses/my_study/bundles/main/report.html")
+```
+
+**Multi-bundle index (optional):**
+
+```python
+from cryoquant.reporting import publish_study
+
+publish_study("analyses/my_study", manifest=manifest)  # or rely on reporting: in config.yaml
+```
+
+---
+
 ## 6. Where code lives
 
 ```text
@@ -290,10 +323,12 @@ analyses/<name>/
   run_ingest.py          # thin CLI wrapper (optional)
   backtest.py            # entry point for this study
   exploration.ipynb      # parameter sweeps
-  reports/               # generated HTML/CSV (gitignored)
+  bundles/               # RunBundle dirs (gitignored)
+  reports/               # manifest, index HTML, phase JSON (gitignored)
   input/                 # study-local raw files (optional)
 
 cryoquant/               # promote here when reusable
+  reporting/             # manifest, index HTML, phase summaries, charts
   data/sources/          # new venue fetchers
   features/builders.py   # shared feature sets
   signals/               # signal factories used by multiple analyses
@@ -312,7 +347,7 @@ cryoquant/               # promote here when reusable
 [ ] Primitives or a few inline columns on the primary frame
 [ ] BoolSignal or ScoreSignal
 [ ] simulate() + deflated_sharpe
-[ ] HTML report under analyses/<name>/reports/
+[ ] HTML report under analyses/<name>/reports/ (see how_to_report.md)
 ```
 
 ### Path B — sweep study
@@ -321,7 +356,8 @@ cryoquant/               # promote here when reusable
 [ ] universe.yaml + run_ingest
 [ ] FeatureBuilder(s) or trend_builders
 [ ] breakout_sim or simulate + sweep_collector
-[ ] score_leaderboard + bundle artifacts
+[ ] score_leaderboard + bundle artifacts (how_to_report.md)
+[ ] optional: manifest.json + index.html
 ```
 
 ### Path C — ML indicator
@@ -364,6 +400,7 @@ CryoTrader live wiring is deferred; see [how_to_use.md §12](how_to_use.md#12-pu
 | Doc | When |
 |---|---|
 | [how_to_use.md](how_to_use.md) | Full reference for every layer |
+| [how_to_report.md](how_to_report.md) | Artifact layout and report format menu |
 | [glossary.md](glossary.md) | `Symbol`, `DatasetRef`, paths A/B/C |
 | [../scripts/](../scripts/) | Runnable reference implementations |
 | [archive/](archive/) | Historical phase plans (contributors) |

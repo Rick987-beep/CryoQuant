@@ -2,16 +2,17 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from .crunch_fund import aggregate_config_results, load_crunch_config
+from cryoquant.reporting.charts import svg_bars, svg_line_chart
+
+from .crunch_fund import load_crunch_config
 from .paths import bundles_dir, data_dir, reports_dir
-from .study_report_html import _svg_bars, _svg_line_chart
 
 
 def _load_artifacts() -> dict[str, Any]:
@@ -67,7 +68,7 @@ def build_crunch_fund_report_html() -> str:
     lb = art["leaderboard"]
     cf = art["cf"]
     vintage_n = art["vintage_n"]
-    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    generated = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
     best = lb.iloc[0] if len(lb) else None
     best_id = str(best["run_id"]) if best is not None else ""
@@ -83,7 +84,7 @@ def build_crunch_fund_report_html() -> str:
     calm_burn = float(pyramid_top["median_calm_burn"]) if pyramid_top is not None else 0.0
     years_dep = float(pyramid_top["median_years_to_depletion"]) if pyramid_top is not None else 0.0
 
-    bar_chart = _svg_bars(
+    bar_chart = svg_bars(
         ["Pyramid", "Standing", "Spike"],
         [peak_pyramid, peak_standing, peak_spike],
         colors=["#3fb950", "#58a6ff", "#f85149"],
@@ -94,7 +95,7 @@ def build_crunch_fund_report_html() -> str:
     full_chart = ""
     covid_chart = ""
     if not eq.empty:
-        full_chart = _svg_line_chart(
+        full_chart = svg_line_chart(
             eq,
             stroke="#58a6ff",
             fill="rgba(88,166,255,0.12)",
@@ -103,7 +104,7 @@ def build_crunch_fund_report_html() -> str:
         )
         covid_slice = eq.loc["2020-01-01":"2020-06-30"]
         if len(covid_slice) > 5:
-            covid_chart = _svg_line_chart(
+            covid_chart = svg_line_chart(
                 covid_slice,
                 stroke="#f85149",
                 fill="rgba(248,81,73,0.15)",

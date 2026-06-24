@@ -10,6 +10,7 @@ Guides for **using** the library. Planning specs and ADRs live in [`archive/`](a
 |---|---|
 | **New to CryoQuant?** | [how_to_use.md](how_to_use.md) — setup, paths A/B/C, and reference for each pipeline layer |
 | **Starting a new study?** | [how_to_build_a_study.md](how_to_build_a_study.md) — from a data track (new or existing) to a backtested signal |
+| **Publishing study outputs?** | [how_to_report.md](how_to_report.md) — artifact layout and report format menu |
 | **Lookup a term** | [glossary.md](glossary.md) |
 
 ---
@@ -32,6 +33,7 @@ Scripts in [`../scripts/`](../scripts/) mirror the docs:
 ```text
 how_to_use.md           Reference walkthrough (what each module does)
 how_to_build_a_study.md Cookbook (what to do for a new idea end-to-end)
+how_to_report.md        Artifact layout and report format menu
 glossary.md               Definitions
 archive/                  Internal build history (phases, ADRs, module inventory)
 ```
