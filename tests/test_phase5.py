@@ -356,26 +356,3 @@ class TestReports:
         with pytest.raises(TemplateNotFound):
             render("no_such_template", {}, tmp_path / "out.html")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TestCLIBacktest
-# ─────────────────────────────────────────────────────────────────────────────
-
-class TestCLIBacktest:
-
-    def test_backtest_spot_stub(self, capsys):
-        from cryoquant.cli import main
-        rc = main(["backtest", "spot", "--signal", "pullback_v1"])
-        assert rc == 0
-        captured = capsys.readouterr()
-        assert "pullback_v1" in captured.out
-
-    def test_backtest_options_stub(self, capsys):
-        from cryoquant.cli import main
-        rc = main(["backtest", "options", "--signal", "pullback_v1", "--dte", "2"])
-        assert rc == 0
-
-    def test_backtest_no_subcommand_returns_one(self):
-        from cryoquant.cli import main
-        rc = main(["backtest"])
-        assert rc == 1

@@ -1,0 +1,69 @@
+# CDX.NA.IG Crunch Fund — backtest configuration
+# Decisions locked for v1 (see SPEC_CRUNCH_FUND.md §10):
+#   NAV floor 5% | 10× = peak NAV in episode | Tier-C = 200bp synthetic | Tier A only (no yield)
+
+crunch_fund:
+  collateral_usd: 5_000_000
+  nav_floor_pct: 0.05
+  fund_years: 5
+  vintage_freq: QS          # quarterly fund starts
+  target_nav_multiple: 10.0
+  tier_c_entry_bps: 50
+  tier_c_exit_bps: 250
+  tier_c_delta_bps: 200     # 50 → 250 bps synthetic design case
+
+sweeps:
+  notional_usd:
+    - 100_000_000
+    - 200_000_000
+    - 300_000_000
+    - 500_000_000
+    - 750_000_000
+    - 1_000_000_000
+  entry_max_bps: [50, 60, 70]
+  exit_bps: [null, 100, 150, 200]   # null = no spread exit (hold to maturity)
+  strategies:
+    - standing
+    - spike
+    - pyramid
+
+# Pyramid uses a focused grid (base calm + stress add-on); see signals_tail.py
+pyramid_sweeps:
+  notional_usd:
+    - 200_000_000
+    - 500_000_000
+    - 1_000_000_000
+  entry_max_bps: [60]
+  exit_bps: [null, 150]              # base leg exit; null = hold through stress
+  addon_entry_bps: [80, 100, 120]    # add +1 notional when spread crosses
+  addon_retreat_bps: [100, 110]      # close add-on when spread retreats
+  addon_hold_days: [30, 45]          # or close add-on after N days
+
+episodes:
+  - id: covid_severe
+    tier: A
+    label: COVID-19 (Feb–Apr 2020)
+    start: "2020-02-01"
+    end: "2020-04-30"
+  - id: covid_peak
+    tier: B
+    label: COVID peak (spread ≥ 150 bps window)
+    start: "2020-03-09"
+    end: "2020-03-31"
+  - id: eu_stress_2011
+    tier: B
+    label: EU stress Oct 2011 (spread ≥ 150 bps)
+    start: "2011-10-01"
+    end: "2011-10-31"
+  - id: tier_c_synthetic
+    tier: C
+    label: Synthetic 50→250 bps explosion (analytical)
+    synthetic: true
+    delta_bps: 200
+
+scoring:
+  weights:
+    distance_to_10x_tier_bc: 0.50
+    crisis_nav_peak_tier_bc: 0.30
+    hit_10x_rate_tier_bc: 0.20
+  tie_breaker: crisis_nav_peak_tier_bc

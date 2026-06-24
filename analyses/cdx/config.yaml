@@ -1,0 +1,108 @@
+# CDX.NA.IG multi-overlay portfolio — research config
+instrument:
+  name: CDX.NA.IG
+  series_id: CDX_NA_IG_5Y
+  macro_source: manual
+  tenor: 5Y
+  roll_months: [3, 9]
+  roll_day: 20
+
+cds_economics:
+  duration: 5.0
+  day_count: 360
+  collateral_usd: 5_000_000
+
+costs:
+  bid_ask_bps: 0.5          # one-way, applied on |Δ(notional × position)|
+  roll_cost_bps: 1.0        # if position held through IMM roll
+  financing_rate: 0.05        # annual on posted collateral (optional)
+
+margin:
+  im_pct_calm: 0.03
+  im_pct_stress: 0.10
+  stress_spread_bps: 100
+  force_delever: false      # v1: track utilization, no forced exit
+
+overlays:
+  tail:
+    notional_usd: 100_000_000
+    collateral_slice_pct: 0.50
+    entry_max_bps: 65
+    exit_min_bps: 100
+    max_hold_days: null
+  yield:
+    notional_usd: 50_000_000
+    collateral_slice_pct: 0.35
+    disable_above_bps: 80
+  proxy:
+    collateral_slice_pct: 0.15
+    instruments: [QQQ, TLT]
+
+data:
+  cdx_clean_csv: input/indicatorbench/cdx/cdx_na_ig_clean.csv
+  proxies:
+    - {venue: yahoo, ticker: QQQ, tf: 1d}
+    - {venue: yahoo, ticker: TLT, tf: 1d}
+  macro:
+    - {source: cboe, series_id: VIX_CLOSE}
+
+regimes:
+  level:
+    tight: 50
+    normal: 80
+    elevated: 120
+  velocity_sigma:
+    low: 0.0222
+    moderate: 0.0299
+    high: 0.0761
+
+backtest:
+  walk_forward:
+    train_years: 8
+    test_years: 3
+
+yield_strategies:
+  stress_bps: 80
+  benchmark: Y1_calm_underwriter
+  Y1:
+    require_velocity_low: true
+  Y2:
+    band_lo: 52
+    band_hi: 78
+    entry_bps: 72
+    exit_bps: 62
+  Y3:
+    lookback_days: 3
+    consecutive_days: 2
+    min_hold_days: 3
+  Y5:
+    hold_days: 10
+  Y9:
+    tight_bps: 55
+    scale_tight: 0.5
+    scale_normal: 1.0
+  tail_reference:
+    entry_max_bps: 60
+    exit_bps: 100
+
+portfolio:
+  tail:
+    entry_max_bps: 60
+    exit_bps: 100
+  variants:
+    - name: tail_y8_mutex
+      yield_strategy: Y8_velocity_filter
+      apply_mutex: true
+    - name: tail_y8_no_mutex
+      yield_strategy: Y8_velocity_filter
+      apply_mutex: false
+    - name: tail_y1_mutex
+      yield_strategy: Y1_calm_underwriter
+      apply_mutex: true
+    - name: tail_y10_mutex
+      yield_strategy: Y10_risk_on
+      apply_mutex: true
+  walk_forward:
+    train_years: 8
+    test_years: 3
+    primary: tail_y8_mutex

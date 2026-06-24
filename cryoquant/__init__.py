@@ -1,6 +1,6 @@
 """cryoquant — pipeline package: data → features → models → signals → backtest.
 
-Phase 0: skeleton only. See docs/quant_plan.md.
+See docs/how_to_use.md for usage.
 """
 
 __version__ = "0.1.0"

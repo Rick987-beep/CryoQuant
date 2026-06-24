@@ -1,0 +1,662 @@
+Source: https://chatgpt.com/share/6a11de68-1024-83eb-a245-14824999f62c
+Title: Ackman 2020 CDS Trade
+
+Skip to content
+Chat history
+New chat
+Search chats
+Images
+Apps
+Deep research
+See plans and pricing
+Settings
+Help
+
+Get responses tailored to you
+
+Log in to get answers based on saved chats, plus create images and upload files.
+
+Log in
+ChatGPT
+Log in
+Sign up for free
+
+This is a copy of a shared ChatGPT conversation
+
+Report conversation
+
+Let’s reconstruct a plausible version of the trade mathematically using Pershing’s own framework and the reported profit of about $2.6 billion.
+
+We’ll use the standard CDS mark-to-market approximation:
+
+Profit≈Δs×D×N
+
+Where:
+
+Δs = spread widening
+
+D = spread duration
+
+N = CDS notional
+
+Step 1 — Assume Pershing’s reported economics
+
+Reported publicly:
+
+Item	Approx
+Premium paid	$27 million
+Profit realized	$2.6 billion
+Holding period	~1 month
+
+The premium was tiny relative to the exposure.
+
+Step 2 — Use realistic 2020 spread moves
+
+Investment-grade CDX spreads approximately:
+
+Time	Spread
+Feb 2020	~50 bps
+March 2020 panic	~150–200 bps
+
+High-yield widened even more.
+
+A blended assumption across IG + HY + Europe is probably:
+
+Δs≈150 bps
+
+or:
+
+0.015
+Step 3 — Assume duration
+
+CDX indices around that maturity had spread duration roughly:
+
+D≈4.5 to 5
+
+Let’s use:
+
+D=5
+Step 4 — Solve for notional
+
+We want:
+
+2.6B≈0.015×5×N
+
+So:
+
+2.6×10
+9
+=0.015×5×N
+
+Rearrange:
+
+N=
+0.075
+2.6×10
+9
+	​
+
+
+N=
+0.075
+2.6×10
+9
+	​
+
+≈34.7×10
+9
+
+So implied CDS exposure was roughly:
+
+≈ $35 billion notional
+
+That is entirely plausible for institutional index CDS markets.
+
+Step 5 — Check against premium paid
+
+Now let’s see whether the reported $27M premium fits.
+
+Suppose average CDS spread paid initially was:
+
+50 bps=0.005
+
+Annual premium on $35B notional:
+
+0.005×35×10
+9
+=175×10
+6
+
+Annual carry cost:
+
+$175M/year
+
+Monthly cost:
+
+12
+175×10
+6
+	​
+
+≈14.6×10
+6
+
+About:
+
+$15M per month
+
+If:
+
+spreads varied across instruments,
+
+some HY protection cost more,
+
+the trade grew over time,
+
+and there were upfront costs,
+
+then:
+
+$27M total premium/carry is very believable.
+Intuition of the leverage
+
+This is the key insight.
+
+Ackman effectively controlled:
+
+~$35 billion of corporate credit exposure
+
+while risking only:
+
+~$27 million of premium
+
+That’s over:
+
+27×10
+6
+35×10
+9
+	​
+
+≈1296
+
+~1300:1 notional-to-premium leverage
+
+This is why CDS hedges become explosive during crises.
+
+Why the payoff became so huge
+
+The trade was highly convex because:
+
+CDS spreads were initially abnormally tight
+
+COVID caused sudden repricing of default risk
+
+Central-bank panic amplified volatility
+
+Liquidity evaporated in credit markets
+
+As spreads exploded wider:
+
+every additional bp increase generated massive MTM gains on gigantic notional.
+
+A more extreme scenario
+
+If some of the position was HY CDS, spreads may have widened:
+
+300–500 bps
+
+Then required notional would be lower.
+
+Example:
+
+Δs=300 bps=0.03
+2.6B=0.03×5×N
+
+N=
+0.15
+2.6×10
+9
+	​
+
+≈17.3×10
+9
+
+Then implied notional is only:
+
+~$17B
+
+So realistic estimates are probably:
+
+Scenario	Implied Notional
+Mostly IG CDS	$35B+
+Mix of IG/HY	$20–30B
+Aggressive HY exposure	$15–20B
+What Pershing likely optimized
+
+The brilliance was not merely “buy CDS.”
+
+It was:
+
+Buying when volatility was cheap
+
+Using indices instead of single names
+
+Maximizing convexity
+
+Hedging portfolio downside efficiently
+
+Exiting exactly when Fed intervention capped spread widening
+
+That timing turned a good hedge into one of the greatest macro trades ever recorded.
+
+Please do the calculation for the following CDX  trade:  open to buy protection at spread 50 bps, notional USD 100 million, take profit 100 bps/50 bps/30 bps, stop loss -5 bps, maximum holding period of 45 days.
+
+Let’s calculate the economics of a CDX buy-protection trade using standard CDS spread-duration approximation.
+
+Trade setup
+Parameter	Value
+Position	Buy protection
+Entry spread	50 bps
+Notional	$100 million
+Take profit #1	+100 bps
+Take profit #2	+50 bps
+Take profit #3	+30 bps
+Stop loss	-5 bps
+Max holding period	45 days
+
+Assume:
+
+spread duration D=5
+
+linear approximation
+
+no defaults
+
+ignore bid/ask and financing
+
+The CDS MTM formula:
+
+PnL≈Δs×D×N
+
+Where:
+
+Δs is spread change in decimal
+
+D is spread duration
+
+N is notional
+
+1. Premium cost (carry)
+
+Entry spread:
+
+50 bps=0.005
+
+Annual premium:
+
+0.005×100×10
+6
+=500,000
+
+So:
+
+annual premium = $500k
+
+daily carry:
+
+360
+500,000
+	​
+
+≈1,389
+
+≈ $1.4k/day
+
+45-day carry:
+
+1,389×45≈62,500
+
+So max holding cost is roughly:
+
+≈ $62.5k carry
+2. Take profit scenarios
+Scenario A — spread widens +100 bps
+
+Spread moves:
+
+50→150 bps
+
+Spread change:
+
+Δs=0.01
+
+PnL:
+
+0.01×5×100×10
+6
+=5×10
+6
+
+Profit ≈ $5.0 million
+
+Net after carry:
+
+5.0M−0.063M≈4.94M
+Scenario B — spread widens +50 bps
+
+Spread moves:
+
+50→100 bps
+Δs=0.005
+
+PnL:
+
+0.005×5×100×10
+6
+=2.5×10
+6
+
+Profit ≈ $2.5 million
+
+Net after carry:
+
+2.5M−0.063M≈2.44M
+Scenario C — spread widens +30 bps
+
+Spread moves:
+
+50→80 bps
+Δs=0.003
+
+PnL:
+
+0.003×5×100×10
+6
+=1.5×10
+6
+
+Profit ≈ $1.5 million
+
+Net after carry:
+
+1.5M−0.063M≈1.44M
+3. Stop-loss scenario
+
+Stop:
+-5 bps tightening
+
+Spread moves:
+
+50→45 bps
+Δs=−0.0005
+
+PnL:
+
+−0.0005×5×100×10
+6
+=−250,000
+
+Loss ≈ -$250k
+
+Including carry:
+
+likely around:
+
+−250k−small carry
+≈ -$260k total
+4. Risk/reward profile
+Outcome	Approx Net PnL
++100 bps	+$4.94M
++50 bps	+$2.44M
++30 bps	+$1.44M
+-5 bps stop	-$0.26M
+5. Reward-to-risk ratios
+
+Against ~$250k stop risk:
+
+TP Level	Reward/Risk
++30 bps	~6:1
++50 bps	~10:1
++100 bps	~20:1
+
+This is why buying CDS protection can be extremely attractive during periods of:
+
+compressed spreads
+
+underestimated macro risk
+
+low volatility
+
+You risk small carry and modest tightening losses for potentially explosive widening gains.
+
+6. Important real-world nuances
+
+Actual desk pricing also depends on:
+
+upfront CDS points
+
+convexity
+
+jump risk
+
+liquidity
+
+index roll
+
+bid/ask spreads
+
+recovery assumptions
+
+coupon structure (100 bp / 500 bp standard coupons)
+
+daily MTM collateral
+
+But for directional macro trading, the duration approximation above is exactly how traders mentally estimate PnL quickly.
+
+How much collateral is needed to trade a CDX notional of USD 100 million?
+
+For a CDX index CDS trade, the collateral (initial margin + variation margin) depends on:
+
+whether you are centrally cleared
+
+dealer relationship
+
+hedge fund vs bank
+
+volatility regime
+
+tenor
+
+IG vs HY
+
+whether you are buying or selling protection
+
+But we can estimate realistic ranges.
+
+Your trade
+Item	Value
+Instrument	CDX
+Position	Buy protection
+Notional	$100 million
+Entry spread	50 bps
+Important distinction
+
+Buying protection does NOT require paying $100M.
+
+You only post:
+
+premium/accrual
+
+initial margin (IM)
+
+variation margin (VM)
+
+That’s why CDS is highly leveraged.
+
+Typical collateral for CDX IG
+
+For investment-grade CDX:
+
+Typical initial margin is often roughly:
+
+2%–6% of notional
+
+depending on volatility.
+
+So for $100M notional:
+
+Margin %	Collateral
+2%	$2M
+3%	$3M
+5%	$5M
+6%	$6M
+
+In calm markets, hedge funds sometimes obtained even lower effective financing.
+
+During crisis periods
+
+Margins expand dramatically.
+
+In March 2020:
+
+CCPs and dealers increased IM sharply
+
+liquidity stress caused large VM calls
+
+Collateral could jump toward:
+
+8–15%+
+
+of notional temporarily.
+
+So:
+
+$8M–15M collateral would not be unusual in crisis conditions.
+
+Why buying protection needs less margin than selling protection
+
+If you buy protection:
+
+your maximum loss is somewhat bounded
+
+spreads can only tighten toward zero
+
+Your downside:
+
+carry cost
+
+MTM losses from tighter spreads
+
+But if you sell protection:
+
+losses can become enormous during spread blowouts
+
+Therefore:
+
+selling protection usually requires substantially more margin.
+Approximate calculation using spread DV01
+
+A common risk approach:
+
+Estimate potential daily move.
+
+Step 1 — Calculate DV01
+
+For CDS:
+
+DV01≈D×N×0.0001
+
+Assume:
+
+duration D=5
+
+notional N=100M
+
+5×100×10
+6
+×0.0001=50,000
+
+So:
+
+DV01 ≈ $50k per bp
+
+Meaning:
+
+a 1 bp spread move changes MTM by about $50k.
+
+Step 2 — Stress scenario
+
+Suppose CCP assumes:
+
+possible 20 bp adverse move
+
+Potential loss:
+
+20×50,000=1,000,000
+
+≈ $1M
+
+Add:
+
+liquidity add-ons
+
+jump risk
+
+concentration
+
+wrong-way risk
+
+You quickly arrive at:
+
+several million dollars of required IM.
+
+That aligns with observed market practice.
+
+Realistic estimate for your trade
+
+For a hedge fund trading:
+
+CDX IG
+
+$100M notional
+
+normal volatility
+
+A realistic required collateral would probably be:
+
+≈ $3M–5M
+
+plus:
+
+accrued premium
+
+daily VM flows
+
+Compare to economic exposure
+
+This is the key leverage:
+
+Item	Amount
+Notional exposure	$100M
+Likely collateral	$3–5M
+Annual premium	$500k
+
+So you control:
+
+$100M of credit exposure
+
+with perhaps:
+
+only $3–5M capital posted.
+
+That embedded leverage is why CDS is such a powerful macro hedge instrument.
+
+Voice
+ChatGPT is AI and can make mistakes.
+We use cookies
+
+Cookies help this site function, measure usage, and support marketing. Manage your cookie preferences anytime. Learn more about our cookie policy.
+
+Reject non-essential
+Accept all

@@ -1,8 +1,12 @@
+> **Archived (Jun 2026).** Internal implementation spec — not required to use CryoQuant.
+> Start with [how_to_use.md](../how_to_use.md).
+
 # CryoQuant — Implementation Spec v1
 
-**Date:** 18 May 2026
-**Status:** Companion to [`quant_plan.md`](quant_plan.md). The plan defines *what* and *why*; this
-document defines *how* and *what "done" looks like* per phase.
+**Date:** 18 May 2026  
+**Updated:** 24 Jun 2026  
+**Status:** **Phases 0–5 and 6A: complete.** **Phase 6B: postponed indefinitely** (D24).
+Living inventory: [`FRAMEWORK_STATUS.md`](FRAMEWORK_STATUS.md).
 **Audience:** The implementing agent (and a future me revisiting cold).
 
 Rules of engagement:
@@ -16,7 +20,7 @@ Rules of engagement:
   would actually look at them — typically the phase sign-off run and anything chart-shaped.
   Most unit tests assert and exit; they don't need to leave files behind.
 - Phase-boundary rule: **never start phase N+1 until phase N's tests are green** on this machine
-  and committed.
+  and committed. *(Phases 0–5 met this bar May 2026; Phase 6A is the current gate.)*
 - **Use libraries.** Whenever a well-maintained, free library does the job better than hand-rolled
   code, install it and use it. Do not write workarounds or reinvent functionality already available
   in a library. `pip install` freely — no need to ask first.
@@ -70,7 +74,7 @@ able to `open` something afterwards (charts, sample chains, sign-off reports).
 
 ---
 
-## Phase 0 — Scaffolding *(already complete)*
+## Phase 0 — Scaffolding *(complete)*
 
 State: directory layout, `pyproject.toml`, `docs/`, empty packages, reference material, and the
 existing `tests/test_smoke.py` are in place.
@@ -87,7 +91,15 @@ No live tests for Phase 0.
 
 ---
 
-## Phase 1 — Data layer
+## Phase 1 — Data layer *(complete; extended Jun 2026 — see Appendix B)*
+
+### 1.0 Deviations from original spec
+
+- **CLI scope (D22):** `catalog list` (+ `register` via API) fully supported. `backtest` and
+  `signals publish` are **compatibility stubs** (exit 0, print library pointer). `catalog refresh`
+  remains a stub pointing at `loader.load`. Primary API for backtest/publish is the library.
+- **Extensions (D18):** `cleaning.py`, `ingest.py`, `macro_store.py`, `yahoo.py`, `twelvedata.py`,
+  `cboe.py`, expanded `fred.py` — not in the original Phase 1 deliverable list but shipped and tested.
 
 ### 1.1 Deliverables
 
@@ -131,7 +143,9 @@ No live tests for Phase 0.
 10. `cryoquant.data.loader` — `load(symbol, tf, start, end) -> pd.DataFrame`. Reads from parquet
     via the catalog. If not cached, calls the appropriate source, writes parquet partitioned as
     `STORE_ROOT/<source>/<venue>_<ticker>/<tf>/year=YYYY/month=MM.parquet`, updates catalog.
-11. `cryoquant.cli` — `python -m cryoquant.cli catalog list|register|refresh`.
+11. `cryoquant.cli` — `python -m cryoquant.cli catalog list|register|refresh`;
+    `models list|inspect`; `backtest spot|options|cryobt` and `signals publish` as **compatibility
+    stubs** (D22). Real backtest/publish: use library (`how_to_use.md`).
 
 ### 1.2 Module-by-module detail
 
@@ -176,7 +190,15 @@ One canonical end-to-end live test plus targeted smoke tests where the wire form
 
 ---
 
-## Phase 2 — Features & labels
+## Phase 2 — Features & labels *(complete; minor deferrals noted)*
+
+### 2.0 Deviations from original spec
+
+- **`features/catalog.yaml` — dropped (YAGNI).** Feature sets are discovered by import
+  (`builders.py`, `trend_builders.py`). No declarative YAML registry.
+- **`butterfly_25d`** — deferred (Phase 7+). Options pack ships `atm_iv`, `iv_minus_rv`,
+  `term_slope`, `risk_reversal_25d`, `vol_of_vol`.
+- **`@cached` round-trip** — covered by `tests/test_phase2.py::TestCachedDecorator`.
 
 ### 2.1 Deliverables
 
@@ -211,8 +233,7 @@ One canonical end-to-end live test plus targeted smoke tests where the wire form
    `STORE_ROOT/features/<builder.id>/v=<version>/<venue>_<ticker>_<tf>__<start>__<end>.parquet`.
    Cache key = sha1(`builder.id | version | inputs | start | end`). Reads via
    `pyarrow`. Eviction not implemented (manual cleanup).
-7. `cryoquant.features.catalog` — yaml file `cryoquant/features/catalog.yaml` listing registered
-   feature sets. Loader function `list_feature_sets() -> list[BuilderInfo]`.
+6. ~~`cryoquant.features.catalog`~~ — **dropped.** No `catalog.yaml`; builders are imported directly.
 
 ### 2.2 Closed-bar safety harness (cross-cutting)
 
@@ -249,7 +270,7 @@ One integration test — the V2 port is the headline risk of this phase.
 
 ---
 
-## Phase 3 — Modelling & calibration
+## Phase 3 — Modelling & calibration *(complete)*
 
 ### 3.1 Deliverables
 
@@ -286,7 +307,7 @@ One integration test — the V2 port is the headline risk of this phase.
    );
    ```
 7. `cryoquant.models.artifacts/` — joblib pickles named `<model_id>.joblib`.
-8. `cryoquant.cli` — `python -m cryoquant.cli models list|inspect <id>`.
+8. `cryoquant.cli` — `python -m cryoquant.cli models list|inspect <id>` only.
 
 ### 3.2 Acceptance tests
 
@@ -314,7 +335,7 @@ One sign-off run — the whole point of this phase is producing a real trained m
 
 ---
 
-## Phase 4 — Signal publication
+## Phase 4 — Signal publication *(complete)*
 
 ### 4.1 Deliverables
 
@@ -341,7 +362,8 @@ One sign-off run — the whole point of this phase is producing a real trained m
 6. `cryoquant.signals.publishers.cryotrader_adapter` — returns a callable matching the
    `EntryCondition(ctx) -> bool` shape used by CryoTrader. **Does not import CryoTrader**;
    instead, the callable's signature is documented and unit-tested with a mock context.
-7. `cryoquant.cli` — `python -m cryoquant.cli signals publish <signal_id> --out <path>`.
+7. `cryoquant.cli` — `signals publish` is a **compatibility stub** (D22); use `emit_history()`
+   from `cryoquant.signals.publishers` for real work.
 
 ### 4.2 Acceptance tests
 
@@ -365,7 +387,14 @@ One sign-off run — the whole point of this phase is producing a real trained m
 
 ---
 
-## Phase 5 — Backtest harness
+## Phase 5 — Backtest harness *(complete; extended Jun 2026 — see Appendix B)*
+
+### 5.0 Deviations from original spec
+
+- **CLI `backtest` subcommands** — compatibility stubs (D22); use `simulate()`, `evaluate()`,
+  `CryoBTAdapter` directly for real runs.
+- **Extensions (D19, D20):** `metrics`, `trades`, `scoring`, `bundle`, `sweep_collector`,
+  `breakout_sim` — generic sweep infrastructure not in the original Phase 5 list.
 
 ### 5.1 Deliverables
 
@@ -384,8 +413,7 @@ One sign-off run — the whole point of this phase is producing a real trained m
 5. `cryoquant.backtest.cryobt_bridge` — adapt a `Signal` to CryoBacktester's `Strategy`
    protocol. **Lifts D3**; sibling repo touched only in read mode (no edits to CryoBacktester).
    Discovery: `import sys; sys.path.insert(0, str(config.CRYOBACKTESTER_ROOT))`.
-6. `cryoquant.cli` — `python -m cryoquant.cli backtest spot|options|cryobt --signal <id>
-   --start ... --end ...`.
+6. `cryoquant.cli` — `backtest spot|options|cryobt` as **compatibility stubs** (D22).
 
 ### 5.2 Acceptance tests
 
@@ -418,28 +446,77 @@ One canonical sign-off; one option-data smoke. Skip the rest — they restate th
 
 ---
 
-## Phase 6 — `cryocore` promotion & polish
+## Phase 6 — Framework closure *(6A complete; 6B postponed — D24)*
 
-### 6.1 Deliverables
+Phase 6 was split into **6A** (hygiene, no sibling repos) and **6B** (CryoBacktester/CryoTrader
+`cryocore` wiring). **6A is complete.** **6B is postponed indefinitely** — this workspace will not
+edit CryoBacktester or CryoTrader. Read-only use of CryoBacktester option parquets via
+`CRYOBACKTESTER_DATA_DIR` remains supported and is not cross-repo wiring.
 
-1. Decide installation mode for `cryocore` (own repo vs subpackage) — see plan §10 OPEN-2.
-2. CryoBacktester + CryoTrader pinned to `cryocore` (either via `pip install -e ../CryoQuant`
-   or a published version) — touching sibling repos for the first time. **One PR each, opt-in
-   by the user.**
-3. `docs/how_to_add_a_signal.md` — step-by-step.
-4. Sunset note in `IndicatorBench/pineforge/README.md` pointing at CryoQuant.
+`cryocore` promotion to its own repo is **decided against for now** (D14).
 
-### 6.2 Acceptance tests
+---
 
-- **public API** — pin the public symbol surface of `cryocore` (a `__all__` snapshot test) so
-  accidental removals are caught.
+### Phase 6A — Closure hygiene *(complete)*
 
-### 6.3 Live tests
+#### 6A.1 Deliverables
 
-1. **`test_cryotrader_consumes_signal_live`** — gated by `CRYOTRADER_PAPER_AVAILABLE=1`. Pushes
-   a `ProbSignal` history file to CryoTrader's paper slot; runs its replay tool via
-   subprocess; asserts at least one entry was evaluated. This is the only test that proves
-   the cross-repo contract works on real bytes.
+1. **Spec reconciliation** — this file + `quant_plan.md` updated to reflect Phases 0–5 complete,
+   post-v1 extensions (Appendix B), and dropped items (`catalog.yaml`, CLI backtest/publish,
+   `experiments/` tree).
+2. **Dependency hygiene** — `yfinance` declared in `pyproject.toml` (required by `data/sources/yahoo.py`).
+3. **Export hygiene** — `ScoreSignal` in `cryoquant.signals.__all__`.
+4. **CLI policy (D22)** — `catalog` and `models` fully implemented. `backtest` and `signals`
+   subcommands retained as compatibility stubs; do not remove without deprecation notice.
+5. `docs/how_to_add_a_signal.md` — already shipped; no change required.
+
+#### 6A.2 Acceptance tests (`tests/test_phase6a.py`)
+
+- **`test_pyproject_declares_yfinance`** — `yfinance` appears in `[project.dependencies]` or
+  `[project.optional-dependencies]` and is importable after install.
+- **`test_score_signal_exported`** — `from cryoquant.signals import ScoreSignal` succeeds; appears
+  in `signals.__all__`.
+- **`test_cli_surface`** — `main(["catalog", "list"])` and `main(["models", "list"])` return 0;
+  `main(["backtest", "spot", ...])` and `main(["signals", "publish", ...])` return 0 with
+  library hint in stdout (stubs retained).
+- **`test_how_to_add_a_signal_exists`** — `docs/how_to_add_a_signal.md` is non-empty.
+- **`test_framework_status_documents_phase6`** — `docs/FRAMEWORK_STATUS.md` documents phase status.
+
+#### 6A.3 Live tests
+
+None — 6A is documentation and packaging only.
+
+#### 6A.4 Sign-off
+
+ADR **D22** (library-first CLI) and **D23** (Phase 6 split) appended to `docs/decisions.md`.
+
+---
+
+### Phase 6B — Cross-repo wiring *(postponed indefinitely — D24)*
+
+**Not in scope.** Originally: CryoBacktester/CryoTrader import `cryocore`; gated live tests in
+`tests/live/test_phase6_live.py` and `test_cryobt_bridge_smoke`. These tests remain in the tree as
+**opt-in documentation** of a future integration path; they are not a phase gate.
+
+If 6B is ever reopened:
+- One PR per sibling repo, opt-in.
+- `tests/test_phase6.py` (`cryocore.__all__` snapshot) remains the cross-repo contract lock.
+
+**Still valid without 6B:** `cryobt_bridge`, `cryotrader_adapter`, `option_lookup` (read-only parquets),
+publishers (CSV/Pine).
+
+---
+
+## Phase 7+ — Backlog *(not started; no phase gate)*
+
+| Item | Trigger |
+|---|---|
+| Portfolio trade-frequency governor | Multi-instrument portfolio with daily trade cap |
+| Ingest QA JSON (`data/qa/`) | Automated ingest pipelines need per-run audit trail |
+| `butterfly_25d` in `features/options.py` | Options-ML research resumes |
+| Panel / Streamlit dashboards | First dashboard actually needed |
+| Sequence models | Tabular models plateau |
+| Microstructure pack (funding-z, OI delta) | Perp alpha candidate |
 
 ---
 
@@ -466,8 +543,46 @@ them off the hot path.
 | `FRED_API_KEY` | `data.sources.fred` | optional (CSV fallback) |
 | `CRYOQUANT_OFFLINE` | live test guard | optional |
 | `CRYOQUANT_FULL_LIVE` | `test_full_pipeline_live` | optional |
-| `CRYOTRADER_PAPER_AVAILABLE` | Phase 6 live test | optional |
-| `CRYOBACKTESTER_DATA_DIR` | `data.sources.deribit_options` | required for option live tests |
-| `CRYOBACKTESTER_ROOT` | `backtest.cryobt_bridge` | required for cryobt bridge tests |
+| `CRYOTRADER_PAPER_AVAILABLE` | Phase 6B live test (postponed) | optional |
+| `CRYOBACKTESTER_DATA_DIR` | `data.sources.deribit_options` (read-only parquets) | optional for options live tests |
+| `CRYOBACKTESTER_ROOT` | `backtest.cryobt_bridge` (6B postponed; opt-in live test only) | optional |
 
 All read in `cryoquant/config.py`. None hard-coded in tests.
+
+---
+
+## Appendix B — Post-v1 extensions *(Jun 2026)*
+
+Modules added after the May 2026 v1.0 sign-off. They extend Phases 1 and 5; acceptance tests
+live in dedicated files (`test_ingest.py`, `test_data_cleaning.py`, `test_features_trend_builders.py`,
+`test_backtest_*.py`), not in the original phase test files.
+
+### B.1 Data layer extensions (D18)
+
+| Module | Purpose |
+|---|---|
+| `data/cleaning.py` | `normalize_ohlcv`, `clean_ohlcv`, `audit_bars` |
+| `data/ingest.py` | YAML-universe orchestrator (`run_ingest`, `ingest_ohlcv`, `ingest_macro`) |
+| `data/macro_store.py` | Non-OHLCV parquet store for spreads, macro series |
+| `data/sources/yahoo.py` | Daily OHLCV via `yfinance` |
+| `data/sources/twelvedata.py` | Hourly OHLCV (auto-routed for `yahoo` + `1h`) |
+| `data/sources/cboe.py` | VIX OHLC history |
+
+### B.2 Feature layer extensions (D21)
+
+| Module | Purpose |
+|---|---|
+| `features/trend_builders.py` | `TrendFeatures`, `MacroFeatures`, `CrossAssetFeatures` |
+| `features/filters.py` | `adx_filter`, `ema_trend_filter` |
+| Extra primitives in `primitives.py` | `donchian`, `adx`, `supertrend`, `macd`, `hurst`, … |
+
+### B.3 Backtest layer extensions (D19, D20)
+
+| Module | Purpose |
+|---|---|
+| `backtest/metrics.py` | Canonical CAGR, Sortino, Calmar, omega, Sharpe |
+| `backtest/trades.py` | `TRADE_COLUMNS`, `enrich_trades` |
+| `backtest/scoring.py` | Percentile-composite leaderboard scoring |
+| `backtest/bundle.py` | Sweep artifact I/O (parquet + JSON) |
+| `backtest/sweep_collector.py` | Injectable multi-run aggregator |
+| `backtest/breakout_sim.py` | Donchian breakout simulator (`simulate_breakout`) |

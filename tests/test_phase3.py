@@ -414,12 +414,3 @@ class TestCLIModels:
         from cryoquant.cli import main
         rc = main(["models", "inspect", "nonexistent_id"])
         assert rc == 1
-
-    def test_signals_publish_stub(self, capsys, tmp_path, monkeypatch):
-        import cryoquant.config as cfg
-        monkeypatch.setattr(cfg, "CATALOG_DB", tmp_path / "cat.duckdb")
-        from cryoquant.cli import main
-        rc = main(["signals", "publish", "my_signal", "--out", str(tmp_path / "out.parquet")])
-        assert rc == 0
-        out = capsys.readouterr().out
-        assert "my_signal" in out

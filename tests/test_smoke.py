@@ -37,7 +37,11 @@ def test_docs_present() -> None:
     from cryoquant import config
 
     docs = config.ROOT / "docs"
-    assert (docs / "quant_plan.md").exists()
-    assert (docs / "FRAMEWORK_STATUS.md").exists()
-    assert (docs / "decisions.md").exists()
+    archive = docs / "archive"
+    assert (docs / "how_to_use.md").exists()
+    assert (docs / "how_to_build_a_study.md").exists()
     assert (docs / "glossary.md").exists()
+    assert (docs / "README.md").exists()
+    assert (archive / "quant_plan.md").exists()
+    assert (archive / "FRAMEWORK_STATUS.md").exists()
+    assert (archive / "decisions.md").exists()

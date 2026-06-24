@@ -126,6 +126,33 @@ belong in `analyses/`.
 Current analyses:
 - `analyses/ema_cross_7_21/` — EMA 7/21 daily crossover on BTCUSDT
 
+## Path A / B / C (workflow)
+
+Documented conventions for how much framework ceremony to use — not enforced in code.
+See [how_to_use.md §2](how_to_use.md).
+
+| Path | Name | Typical use |
+|---|---|---|
+| A | Quick | Few series, rule indicator (`scripts/quick_indicator.py`) |
+| B | Study | Many symbols, parameter sweeps (`ingest`, `breakout_sim`) |
+| C | ML | Many heterogeneous tracks (`DataPanel`, `walk_forward_fit`) |
+
+## align_series
+
+Public helper in `cryoquant.features.align` that maps a lower-frequency macro or auxiliary
+series onto a bar index (`asof` or `ffill`, with optional staleness cap). Replaces manual
+`series.reindex(index, method="ffill")` in quick studies.
+
+## load_track
+
+Unified loader in `cryoquant.data.resolve` — routes `Symbol` to OHLCV `load()` or
+`macro_store.load_series()` based on instrument `asset_class`.
+
+## DataPanel
+
+Container in `cryoquant.features.panel` for multiple named tracks (OHLCV + macro).
+`from_loads` → `align_track` → `to_frames` for Path C multi-source feature building.
+
 ## Experiment
 
 One folder under `cryoquant/experiments/<id>/` containing a YAML/TOML config + a thin script.

@@ -1,8 +1,12 @@
+> **Archived (Jun 2026).** Internal module inventory snapshot — not required to use CryoQuant.
+> Start with [how_to_use.md](../how_to_use.md).
+
 # CryoQuant — Framework Status
 
-**Last updated:** 2026-06-17  
-**Package version:** `cryoquant` 0.0.1 · `cryocore` 0.1.0  
-**Tests passing:** 467+  
+**Last updated:** 2026-06-24  
+**Package version:** `cryoquant` 0.1.0 · `cryocore` 0.1.0  
+**Tests passing:** 506+  
+**Phase:** 0–5 complete · **6A complete** · **6B postponed indefinitely** (D24)  
 **Supersedes:** `quant_plan.md` and `quant_spec.md` as the living "what is the framework" reference.
 Those files remain for historical context (v1.0 BTC-centric pipeline, May 2026).
 
@@ -13,17 +17,21 @@ Those files remain for historical context (v1.0 BTC-centric pipeline, May 2026).
 ```
 cryocore/          shared types, symbols, calendars, UTC helpers
 cryoquant/
-  data/            sources → cleaning → loader → catalog → ingest → macro_store
-  features/        primitives → builders / trend_builders → labels → store
-  models/          baselines, tabular, cv, metrics, registry
+  features/        primitives → align → builders / trend_builders / panel → labels → store
+  data/            sources → cleaning → loader → resolve → catalog → ingest → macro_store
+  models/          baselines, tabular, cv, fit_loop, metrics, registry
   signals/         base, from_model, thresholds, publishers
   backtest/        spot_pnl, breakout_sim, option_lookup, metrics, trades,
                    scoring, bundle, sweep_collector, robustness, reports
-  cli/             catalog, models, backtest, signals sub-commands
+  cli/             catalog + models (live); backtest + signals (compat stubs, D22)
 analyses/          per-study orchestration; imports framework, never the reverse
 docs/              planning, specs, decisions, this file
-tests/             32 test files; 467+ passing (offline)
+tests/             33 test files; 478+ passing (offline)
 ```
+
+**Cross-repo integration (Phase 6B)** — CryoBacktester/CryoTrader consuming `cryocore` — is
+**postponed indefinitely** (D24). This repo will not edit sibling codebases. Read-only options
+data from CryoBacktester parquets (`CRYOBACKTESTER_DATA_DIR`) remains supported.
 
 Data flows left-to-right through the pipeline:
 
@@ -66,6 +74,7 @@ folders (`analyses/`) are research workspaces that consume the framework.
 | Module | Key exports | Notes |
 |---|---|---|
 | `loader.py` | `load`, `delete_partitions` | Partitioned parquet; auto-routes `yahoo`+`1h` to Twelve Data |
+| `resolve.py` | `load_track`, `load_tracks`, `is_ohlcv_symbol` | Unified OHLCV vs macro routing; Jun 2026 |
 | `catalog.py` | `register`, `lookup`, `list_datasets` | DuckDB dataset index |
 | `cleaning.py` | `normalize_ohlcv`, `clean_ohlcv`, `audit_bars`, `AuditWarning` | Asset-class spike thresholds; FX weekend drops via calendar |
 | `ingest.py` | `IngestResult`, `load_universe`, `run_ingest`, `ingest_ohlcv`, `ingest_macro` | YAML universe orchestration; added June 2026 |
@@ -99,6 +108,10 @@ folders (`analyses/`) are research workspaces that consume the framework.
 
 **`features/builders.py`** — `DatasetRef`, `FeatureBuilder` protocol, `SpotFeatures`, `DailyEmaCrossFeatures`
 
+**`features/align.py`** — `align_series`, `align_frame_column`, `align_many`, `join_features` *(Jun 2026 workflow glue)*
+
+**`features/panel.py`** — `DataPanel` multi-track container *(Jun 2026)*
+
 **`features/trend_builders.py`** — Three trend-research builders *(added June 2026)*:
 
 | Class | `id` | `version` | Output columns |
@@ -124,6 +137,7 @@ Composite functions: `trend_regime`, `vol_expansion`, `friday_monday_stress`
 | `base.py` | `Model` protocol, `ModelMetadata` |
 | `baselines.py` | `RuleModel`, `make_pullback`, `make_vol_burst`, `make_bear_burst` |
 | `tabular.py` | `TabularModel` (LightGBM + isotonic `CalibratedClassifierCV`) |
+| `fit_loop.py` | `walk_forward_fit`, `FoldResult`, `concat_oos_probs` — Jun 2026 workflow glue |
 | `cv.py` | `purged_kfold`, `walk_forward` |
 | `metrics.py` | `compute_metrics` (classification), `reliability_diagram` |
 | `registry.py` | `generate_model_id`, `register`, `get_model`, `list_models` |
@@ -180,7 +194,9 @@ All modules are re-exported from `cryoquant.backtest.__init__`.
 
 ## `cryoquant.cli`
 
-`catalog list/refresh` · `models list/inspect` · `backtest spot/options/cryobt` · `signals publish`
+**CLI policy (D22):** `catalog list|refresh` · `models list|inspect` — fully implemented.
+`backtest spot|options|cryobt` · `signals publish` — **compatibility stubs** (exit 0, point to
+library). Prefer `simulate`, `evaluate`, `emit_history` for real work — see [how_to_use.md](../how_to_use.md).
 
 ---
 
@@ -193,21 +209,24 @@ All modules are re-exported from `cryoquant.backtest.__init__`.
 | `cryoquant.backtest` | ✅ All modules including June 2026 additions |
 | `cryoquant.features` | ⚠ No `__init__.py` re-exports — callers import directly from sub-modules |
 | `cryoquant.models` | Not checked |
-| `cryoquant.signals` | ⚠ `ScoreSignal` not exported from `signals/__init__.py` |
+| `cryoquant.signals` | ✅ `ScoreSignal` exported from `signals/__init__.py` |
 
 ---
 
 ## Open Framework TODOs
 
+All items below are **Phase 7+ backlog** — not required for framework completeness.
+
 | Item | Priority | Notes |
 |---|---|---|
-| Add `yfinance` to `pyproject.toml` | High | `data/sources/yahoo.py` uses it; not declared as a dependency |
-| Portfolio-level trade-frequency governor | Medium | Needed for multi-instrument trend portfolio (≤ 3 trades/day constraint). Per-instrument workaround in Phase 3A. |
-| `cryoquant/__init__.py` — re-export sub-packages | Low | Currently a stub; callers import from sub-modules directly |
-| `signals/__init__.py` — export `ScoreSignal` | Low | Defined in `base.py`, not yet in `__all__` |
-| `@cached` round-trip test | Low | Deferred from Phase 2; exercise on real store data in Phase 3 |
-| QA JSON reports (`data/qa/`) | Low | Per-run ingest quality JSON not yet implemented |
-| `hurst` in `TrendFeatures` | Low | Omitted from default build (too slow); add as opt-in column |
+| Portfolio-level trade-frequency governor | Medium | Multi-instrument portfolio with daily trade cap |
+| QA JSON reports (`data/qa/`) | Low | Per-run ingest audit trail |
+| `butterfly_25d` in `features/options.py` | Low | Options-ML research |
+| `catalog refresh` CLI command | Low | Stub; `loader.load` auto-refreshes today |
+| Wire CLI `backtest` / `signals publish` to library | Low | Stubs retained for compat (D22); wire when signal registry exists |
+| `cryoquant/__init__.py` re-exports | Low | Callers import sub-modules directly |
+| `hurst` in `TrendFeatures` | Low | Too slow for default build |
+| ~~Phase 6B cross-repo wiring~~ | — | **Postponed indefinitely (D24)** |
 
 ---
 

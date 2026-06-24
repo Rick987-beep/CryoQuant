@@ -1,18 +1,29 @@
+> **Archived (Jun 2026).** Internal planning and build history — not required to use CryoQuant.
+> Start with [how_to_use.md](../how_to_use.md).
+
 # CryoQuant — Plan v2 (refined)
 
 **Date:** 18 May 2026  
-**Updated:** 20 May 2026 — v1.0 release complete (all phases delivered)  
+**Updated:** 24 Jun 2026 — Phases 0–5 complete; Phase 6A complete; Phase 6B postponed  
 **Workspace:** `/Users/ulrikdeichsel/CryoQuant` (Python 3.12, local-only)
 **Purpose:** A pragmatic, asset-agnostic quant pipeline that turns timeline data → features → models → calibrated signals → backtests, with final consumers being **CryoTrader** (live, automated) and **research notebooks/dashboards**. Built on the lessons of `pineforge` and `research/long_tradable_options`, integrating with `CryoBacktester` as the canonical options engine.
 
-**Status:** All six phases (0–5) are complete. The first end-to-end signal (EMA 7/21 daily crossover on BTCUSDT) is implemented, backtested against spot and real Deribit options chain data, and the reports are in `reports/`.
+**Status:** **Phases 0–5 and 6A are complete** (478+ offline tests green). The v1.0 BTC baseline shipped May 2026
+(EMA 7/21 crossover, spot + options backtests). **Post-v1 extensions** (multi-asset ingest, trend
+builders, sweep backtest infra — Jun 2026) are in §7.1 and
+[`FRAMEWORK_STATUS.md`](FRAMEWORK_STATUS.md).
 
-For a practical walkthrough, see [`how_to_use.md`](how_to_use.md).
+**Phase 6B (cross-repo wiring)** — CryoBacktester/CryoTrader consuming `cryocore` — is **postponed
+indefinitely** (D24). CryoQuant will not edit sibling repos. Options backtests may still **read**
+CryoBacktester parquets read-only via `CRYOBACKTESTER_DATA_DIR`; that is not cross-repo wiring.
+
+For a practical walkthrough, see [`how_to_use.md`](../how_to_use.md).
 
 This document supersedes any previous draft. Decisions are baked in; sections with `[OPEN]` flag what is still unresolved.
 
 > **Implementation detail lives in [`quant_spec.md`](quant_spec.md).** This plan stays high-level
 > (what, why); the spec defines module APIs, acceptance tests, and live tests per phase.
+> **Living inventory of what ships today:** [`FRAMEWORK_STATUS.md`](FRAMEWORK_STATUS.md).
 
 ---
 
@@ -58,6 +69,20 @@ class Instrument:
 ```
 
 Calendars are first-class so day-of-week / session features work uniformly across asset classes. `crypto_24_7` is the trivial calendar.
+
+### 2.6 Framework philosophy (workflow paths)
+
+CryoQuant is a **library, not a workflow engine**. Strict at data/signal seams; loose in the
+middle (pandas joins, optional `FeatureBuilder`, analysis-local scripts).
+
+| Path | Use case | Entry |
+|---|---|---|
+| **A — Quick** | Few series, rule indicator | `scripts/quick_indicator.py`, [how_to_use.md §2](how_to_use.md) |
+| **B — Study** | Many symbols, sweeps | `ingest` + `breakout_sim` / sweep infra |
+| **C — ML** | Many heterogeneous tracks | `DataPanel`, `walk_forward_fit`, `scripts/ml_multi_source.py` |
+
+**Promote to `cryoquant/`** when two analyses need the same pattern. Details:
+[workflow_plan.md](workflow_plan.md), [FRAMEWORK_STATUS.md](FRAMEWORK_STATUS.md).
 
 ### 2.2 Features — two tiers
 
@@ -194,13 +219,11 @@ CryoQuant/
 │   │
 │   ├── experiments/                # One folder per experiment: config + thin script
 │   │
-│   └── cli/                        # `python -m cryoquant.cli ...`
+│   └── cli/                        # catalog + models (live); backtest/signals (compat stubs)
 │
-├── analyses/                       # Named analyses — the "use" layer
-│   └── ema_cross_7_21/             # EMA 7/21 daily crossover (first signal)
-│       ├── backtest.py             # Entry point (symlinked from scripts/)
-│       └── exploration.ipynb       # Interactive parameter sweeps
-│                                   # reports/ is gitignored (generated output)
+├── analyses/                       # Named analyses — the "use" layer (config + thin scripts)
+│
+├── scripts/                        # Runnable end-to-end examples (e.g. ema_cross_backtest.py)
 │
 ├── notebooks/                      # Jupyter — exploration only
 │
@@ -375,10 +398,43 @@ Create CryoQuant directory layout, `pyproject.toml`, `docs/`, empty `cryocore/` 
 2. Build `cryobt_bridge` — adapt a CryoQuant `Signal` into a CryoBacktester strategy. **First touch on CryoBacktester** (lifting D3).
 3. Port `pineforge.bakeoff` semantics into `cryoquant.backtest`.
 
-**Phase 6 — cryocore promotion & polish.**
-1. Once `cryocore` API is stable and CryoBacktester/CryoTrader benefit, promote it to its own repo (or keep as installable subpackage — TBD).
-2. Sunset `IndicatorBench/pineforge/` once everything lives in CryoQuant.
-3. Write the "how to add a new signal" guide.
+**Phase 6 — framework closure** *(6A complete; 6B postponed — D24).*
+
+**Phase 6A — closure hygiene** *(complete, Jun 2026).*
+1. Reconcile spec vs shipped code: declare `features/catalog.yaml` and `cryoquant/experiments/` YAGNI; document post-v1 extensions (§7.1).
+2. Fix dependency hygiene (`yfinance` declared; `ScoreSignal` exported).
+3. **CLI policy (D22):** `catalog` and `models` fully implemented. `backtest` and `signals publish`
+   remain compatibility stubs (library hints); primary API is library calls (`how_to_use.md`).
+4. `docs/how_to_add_a_signal.md` — shipped.
+
+**Phase 6B — cross-repo wiring** *(postponed indefinitely — D24).*
+Originally: CryoBacktester + CryoTrader pinned to `cryocore` via `pip install -e ../CryoQuant`;
+gated live tests; pineforge sunset note. **Not planned.** Sibling repos will not be edited from
+this workspace. `cryocore` stays inside CryoQuant (D14). Revisit only if integration becomes a
+concrete priority.
+
+**What remains valid without 6B:**
+- Read-only options data from CryoBacktester parquets (`CRYOBACKTESTER_DATA_DIR`).
+- `cryotrader_adapter` and `cryobt_bridge` as **library code** (unit-tested shapes; no live sibling invocation required).
+- CSV/Pine publishers for external consumption.
+
+**Phase 7+ — backlog** *(only when a concrete use case demands it).*
+Portfolio trade-frequency governor, ingest QA JSON, Panel dashboards, `butterfly_25d`, sequence models.
+
+---
+
+## 7.1 Post-v1 extensions *(Jun 2026, outside original phase boundaries)*
+
+Shipped while running analyses (trend-following, quickwintrend). These extend — not replace — Phases 1 and 5:
+
+| Area | What was added | ADR |
+|---|---|---|
+| **Data** | `cleaning`, `ingest`, `macro_store`; Yahoo / Twelve Data / CBOE / expanded FRED; 40+ instruments | D18 |
+| **Features** | `trend_builders` (`TrendFeatures`, `MacroFeatures`, `CrossAssetFeatures`); `filters`; extra primitives | D21 |
+| **Backtest** | `metrics`, `trades`, `scoring`, `bundle`, `sweep_collector`, `breakout_sim` | D19, D20 |
+
+Analyses live under `analyses/<name>/` with local `config.yaml` + thin run scripts. Generated
+`reports/` are gitignored. The framework never imports from `analyses/`.
 
 ---
 
@@ -390,7 +446,7 @@ Create CryoQuant directory layout, `pyproject.toml`, `docs/`, empty `cryocore/` 
 - **No look-ahead, ever.** Every feature builder has a unit test that asserts `feature[T]` is unchanged when bars after `T` are masked.
 - **IDs:** sha1 of canonical-JSON-encoded inputs. Pattern lifted from `pineforge.RunSpec.run_id()`.
 - **Storage:** parquet for data/features/predictions; DuckDB for catalogs and registries; HTML for human reports; CSV only ad-hoc.
-- **Reproducibility:** every experiment = one YAML/TOML under `cryoquant/experiments/<id>/` + a thin CLI invocation. No "I tweaked the script and reran" — bump the config.
+- **Reproducibility:** every study = `analyses/<name>/config.yaml` (or equivalent) + a thin run script under `analyses/` or `scripts/`. No "I tweaked the script and reran" — bump the config. A central `cryoquant/experiments/` tree is **not** used (YAGNI).
 
 ---
 
@@ -407,10 +463,12 @@ Create CryoQuant directory layout, `pyproject.toml`, `docs/`, empty `cryocore/` 
 ## 10. Open items `[OPEN]`
 
 1. **Source attribution for on-chain data** — Glassnode free tier is thin; CryptoQuant has a paid API. Defer until a candidate motivates it.
-2. **`cryocore` external promotion** — own repo vs installable subpackage. Decide in Phase 6.
-3. **Sequence models** — left out of Phase 3. Add only if tabular plateaus.
-4. **Equities ingestion** — yfinance is convenient but flaky; nothing better is free. Decide when first equity candidate appears.
-5. **Dashboard tooling** — Panel (CryoBacktester-consistent) vs Streamlit (faster to build). Pick when first dashboard is actually needed.
+2. **`cryocore` external promotion** — **decided (D14):** stay as subpackage inside CryoQuant. **Cross-repo consumption (6B) postponed indefinitely (D24).**
+3. **Sequence models** — left out of Phase 3. Add only if tabular plateaus (Phase 7+).
+4. **Equities ingestion** — **partially shipped (D18):** Yahoo daily + Twelve Data hourly. yfinance is the daily default; revisit only if reliability becomes a blocker.
+5. **Dashboard tooling** — Panel (CryoBacktester-consistent) vs Streamlit (faster to build). Pick when first dashboard is actually needed (Phase 7+).
+6. **CLI for backtest/publish** — **decided (D22):** library-first for real work; stub subcommands
+   retained for backward compatibility until wired or explicitly removed.
 
 ---
 

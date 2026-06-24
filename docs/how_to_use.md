@@ -1,8 +1,10 @@
 # How to Use CryoQuant
 
-**Version:** 1.0  
-**Date:** 20 May 2026  
+**Version:** 1.1  
+**Date:** 24 Jun 2026  
 **Audience:** Anyone running a new analysis, adding a signal, or integrating with CryoTrader.
+
+**New study?** See [how_to_build_a_study.md](how_to_build_a_study.md) for the end-to-end cookbook (data → signal → backtest).
 
 CryoQuant is a local quant pipeline that turns raw market data into calibrated, actionable signals.
 The pipeline has six layers: **data → features → labels → models → signals → backtest**.
@@ -13,18 +15,19 @@ You only need the layers relevant to your task — a rule-based signal skips mod
 ## Contents
 
 1. [Setup](#1-setup)
-2. [Core concepts in 90 seconds](#2-core-concepts-in-90-seconds)
-3. [Hello World — EMA crossover signal end-to-end](#3-hello-world--ema-crossover-signal-end-to-end)
-4. [Loading market data](#4-loading-market-data)
-5. [Building features](#5-building-features)
-6. [Labelling bars for ML](#6-labelling-bars-for-ml)
-7. [Training a model](#7-training-a-model)
-8. [Creating signals](#8-creating-signals)
-9. [Running a backtest](#9-running-a-backtest)
-10. [Options backtesting](#10-options-backtesting)
-11. [Publishing a signal](#11-publishing-a-signal)
-12. [Best practices](#12-best-practices)
-13. [Workflow: adding a new analysis](#13-workflow-adding-a-new-analysis)
+2. [Choose your path](#2-choose-your-path)
+3. [Core concepts in 90 seconds](#3-core-concepts-in-90-seconds)
+4. [Hello World — EMA crossover signal end-to-end](#4-hello-world--ema-crossover-signal-end-to-end)
+5. [Loading market data](#5-loading-market-data)
+6. [Building features](#6-building-features)
+7. [Labelling bars for ML](#7-labelling-bars-for-ml)
+8. [Training a model](#8-training-a-model)
+9. [Creating signals](#9-creating-signals)
+10. [Running a backtest](#10-running-a-backtest)
+11. [Options backtesting](#11-options-backtesting)
+12. [Publishing a signal](#12-publishing-a-signal)
+13. [Best practices](#13-best-practices)
+14. [Workflow: adding a new analysis](#14-workflow-adding-a-new-analysis)
 
 ---
 
@@ -50,7 +53,31 @@ other than the default `~/CryoBacktester/backtester/data`.
 
 ---
 
-## 2. Core concepts in 90 seconds
+## 2. Choose your path
+
+Not every task needs the full six-layer pipeline. Pick the path that matches your goal:
+
+| Path | When to use | Example script | Key modules |
+|---|---|---|---|
+| **A — Quick** | 2–5 series, rule-based indicator | `scripts/quick_indicator.py` | `load_track`, primitives, `align_series`, `BoolSignal`, `simulate` |
+| **B — Study** | Many symbols, parameter sweeps | `analyses/*/run_sweep.py` pattern | `ingest`, `breakout_sim`, `sweep_collector`, `bundle` |
+| **C — ML** | 10–20+ tracks, ProbSignal | `scripts/ml_multi_source.py` | `DataPanel`, builders, `walk_forward_fit`, `TabularModel` |
+
+```mermaid
+flowchart TD
+  start[New idea] --> q1{Rule or ML?}
+  q1 -->|Rule, few series| pathA[Path A: primitives + signal]
+  q1 -->|ML, many tracks| pathC[Path C: panel + walk_forward_fit]
+  q1 -->|Many symbols, grids| pathB[Path B: ingest + sweep]
+```
+
+**Promote to framework** (`cryoquant/`) when two analyses need the same pattern, or the code has no domain-specific semantics (alignment, metrics, sweep I/O). Keep hypothesis-specific logic in `analyses/<name>/`.
+
+**Strict at seams, loose in the middle:** always use `Symbol` + `load`/`load_track` for data and `Signal` + `simulate` for backtest output; pandas joins and optional `FeatureBuilder` in between are up to you.
+
+---
+
+## 3. Core concepts in 90 seconds
 
 | Concept | What it is | Where it lives |
 |---|---|---|
@@ -67,7 +94,7 @@ All times are **UTC tz-aware**. Never use `datetime.utcnow()` — always `dateti
 
 ---
 
-## 3. Hello World — EMA crossover signal end-to-end
+## 4. Hello World — EMA crossover signal end-to-end
 
 The EMA 7/21 daily crossover on BTC/USDT is the first signal shipped in CryoQuant v1.
 Run it now to confirm the stack is working:
@@ -132,7 +159,7 @@ render_spot_result(result_long, "reports/ema_cross_long.html")
 
 ---
 
-## 4. Loading market data
+## 5. Loading market data
 
 `load()` is the single entry point for all market data.
 On the first call it fetches from the source (Binance REST) and writes partitioned parquet.
@@ -182,9 +209,28 @@ chain = load_chain(dates[-1])      # most recent chain as DataFrame
 spot  = load_spot(dates[-1])       # spot price on that date
 ```
 
+### Unified track loading (`load_track`)
+
+When mixing OHLCV bars and macro series, use `load_track` instead of choosing between `loader` and `macro_store` manually:
+
+```python
+from cryoquant.data.resolve import load_track, load_tracks
+from cryocore.instruments import Symbol
+
+btc = load_track(Symbol("binance.spot", "BTCUSDT"), "1h", start, end)   # DataFrame
+vix = load_track(Symbol("fred", "DGS10"), "1d", start, end)           # Series
+
+tracks = load_tracks(
+    [(Symbol("yahoo", "SPY"), "1d"), (Symbol("fred", "VIX"), "1d")],
+    start, end,
+)
+```
+
+Routing: `fred`, `manual`, and `cboe` venues → `macro_store`; everything else → `loader.load`.
+
 ---
 
-## 5. Building features
+## 6. Building features
 
 ### Tier-1 primitives — inline, no boilerplate
 
@@ -244,9 +290,26 @@ df["us_session"]   = is_us_session(df.index) # 14:30–21:00 UTC Mon–Fri
 df["is_weekend"]   = is_weekend(df.index)
 ```
 
+### Aligning series from different sources
+
+Use `align_series` when joining macro or daily data onto a primary bar index. Use `htf_align` (in `primitives`) for higher-timeframe **bar** features on intraday frames.
+
+```python
+from cryoquant.features.align import align_series, align_many, join_features
+
+btc = load_track(Symbol("binance.spot", "BTCUSDT"), "1h", start, end)
+vix = load_track(Symbol("yahoo", "^VIX"), "1d", start, end)
+btc["vix"] = align_series(btc.index, vix["close"], method="asof", ffill_limit=35)
+
+# Join multiple feature frames
+X = join_features(trend_features, macro_features)
+```
+
+`ffill_limit` (default 35 calendar days) caps how stale a macro print can be before becoming NaN — important for monthly series like CPI.
+
 ---
 
-## 6. Labelling bars for ML
+## 7. Labelling bars for ML
 
 Labels are forward-looking outcome columns. Use `ForwardReturnLabeler` to generate them.
 **Never use label columns as model features** — they contain future information.
@@ -275,7 +338,7 @@ y = clean["label"]
 
 ---
 
-## 7. Training a model
+## 8. Training a model
 
 ### Rule model (no training data needed)
 
@@ -328,9 +391,30 @@ for train_idx, test_idx in purged_kfold(n=len(df), n_splits=5, embargo_bars=24):
     ...
 ```
 
+### Walk-forward with `walk_forward_fit`
+
+For Path C studies, use the fit loop instead of hand-rolling the CV loop:
+
+```python
+from cryoquant.models.fit_loop import walk_forward_fit, concat_oos_probs
+from cryoquant.models.tabular import TabularModel
+
+results = walk_forward_fit(
+    TabularModel,
+    X, y,
+    train_window_bars=180,
+    test_window_bars=30,
+    step_bars=30,
+    embargo_bars=24,
+)
+oos_probs = concat_oos_probs(results)
+for r in results:
+    print(r.fold_id, r.metrics["auc"], r.metrics["brier"])
+```
+
 ---
 
-## 8. Creating signals
+## 9. Creating signals
 
 Signals are instantiated **functionally** — pass a callable, do not subclass.
 
@@ -404,7 +488,7 @@ short_signal = make_ema_cross_short() # BoolSignal: True on bearish cross
 
 ---
 
-## 9. Running a backtest
+## 10. Running a backtest
 
 ### Spot backtest
 
@@ -464,7 +548,7 @@ one closes. Execution is `next_open` (enters at the open of the bar after the si
 
 ---
 
-## 10. Options backtesting
+## 11. Options backtesting
 
 The options backtest uses real Deribit chain snapshots from CryoBacktester.
 The signal fires on EMA cross dates; the backtest selects the nearest-DTE option at a target delta.
@@ -495,7 +579,7 @@ Reports are written to `reports/ema_cross_calls_dte3_d30_h72.html` etc.
 
 ---
 
-## 11. Publishing a signal
+## 12. Publishing a signal
 
 ### CSV / parquet history
 
@@ -529,7 +613,15 @@ entry_fn = as_entry_condition(long_signal, bars)
 
 ---
 
-## 12. Best practices
+## 13. Best practices
+
+### Strict at seams
+
+| Layer | Be strict about | Stay loose about |
+|---|---|---|
+| Data in | `Symbol`, `load`/`load_track`, UTC bar-open, no lookahead in features | Whether you use `FeatureBuilder` or inline primitives |
+| Middle | Drop NaN labels before fit; align macro with `align_series` | How you join layers; analysis folder layout |
+| Signal out | `Signal` protocol, `simulate` / `option_lookup` for backtest | Model registry, CLI vs library calls |
 
 ### Data
 
@@ -577,9 +669,35 @@ entry_fn = as_entry_condition(long_signal, bars)
 
 ---
 
-## 13. Workflow: adding a new analysis
+## 14. Workflow: adding a new analysis
 
-The recommended workflow for a new signal idea:
+Pick a checklist by path (see [§2](#2-choose-your-path)):
+
+**Path A — Quick indicator**
+```
+1. Notebook or scripts/quick_indicator.py pattern
+2. load_track + primitives + align_series
+3. BoolSignal or ScoreSignal
+4. simulate() + deflated_sharpe + HTML report
+```
+
+**Path B — Study / sweep**
+```
+1. analyses/<name>/config.yaml + universe for ingest
+2. FeatureBuilder(s) or trend_builders
+3. breakout_sim or simulate + sweep_collector
+4. score_leaderboard + bundle artifacts
+```
+
+**Path C — ML indicator**
+```
+1. DataPanel.from_loads or ingest at scale
+2. Compose builders + ForwardReturnLabeler
+3. walk_forward_fit(TabularModel, ...)
+4. prob_from_model → simulate → registry (optional)
+```
+
+Legacy linear workflow (any path):
 
 ```
 1. Explore               notebooks/my_signal_exploration.ipynb
@@ -589,10 +707,10 @@ The recommended workflow for a new signal idea:
 5. If credible (DSR>0.95) move to analyses/my_signal/
 6. Optional: train a model and wrap it as a ProbSignal
 7. Register the signal    (model registry + signal_id naming convention)
-8. Publish to CryoTrader  cryotrader_adapter.as_entry_condition(...)
+8. Publish (optional)     emit_history() / Pine emitter — CryoTrader integration deferred (Phase 6B)
 ```
 
-For a step-by-step guide to adding a signal, see [`how_to_add_a_signal.md`](how_to_add_a_signal.md).
+For the end-to-end cookbook (new data → signal → backtest), see [`how_to_build_a_study.md`](how_to_build_a_study.md).
 
 ### Pipeline summary
 

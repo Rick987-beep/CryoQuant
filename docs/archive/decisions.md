@@ -1,3 +1,6 @@
+> **Archived (Jun 2026).** Architecture decision log — not required to use CryoQuant.
+> Start with [how_to_use.md](../how_to_use.md).
+
 # Decision Log
 
 ADR-style: one entry per material decision. Append-only; if a decision is reversed, write a new
@@ -189,6 +192,42 @@ Two issues fixed during promotion:
 `analyses/trend_following/features.py` replaced with a thin re-export shim.
 **Consequences:** Framework now ships three production-ready Tier-2 feature builders for
 trend research.  Analysis scripts importing from the local path continue to work unchanged.
+
+## [2026-06-24] D22 — CLI: library-first implementation, stubs retained for compatibility
+**Context:** Phase 1/4/5 spec listed `backtest` and `signals publish` CLI subcommands. Full wiring
+would duplicate `scripts/` and `how_to_use.md` without immediate value. Phase 6A initially removed
+the stub subcommands entirely.
+**Decision:**
+- **Primary API:** backtest and signal publication are library calls (`simulate`, `evaluate`,
+  `emit_history`, etc.) — documented in `how_to_use.md`.
+- **CLI:** `catalog` and `models` are fully implemented. `backtest spot|options|cryobt` and
+  `signals publish` remain as **compatibility stubs** (exit 0, print library pointer) so existing
+  CLI users and scripts are not broken. Wiring real implementations is deferred.
+**Consequences:** Stub subcommands restored after brief removal. Spec updated. Tests in
+`tests/test_phase6a.py::TestCLISurface`.
+
+## [2026-06-24] D23 — Phase 6 split into 6A (closure) and 6B (cross-repo)
+**Context:** Phases 0–5 shipped May 2026; post-v1 extensions landed Jun 2026 without updating the
+phase model. Phase 6 mixed hygiene work with CryoBacktester/CryoTrader integration.
+**Decision:**
+- **6A:** Spec reconciliation, dependency/export hygiene, CLI policy (library-first + retained stubs).
+- **6B:** `cryocore` consumption by CryoBacktester + CryoTrader; gated live tests.
+- **Phase 7+:** Backlog (portfolio governor, QA JSON, `butterfly_25d`, dashboards, sequence models).
+**Consequences:** `quant_plan.md` and `quant_spec.md` updated. `FRAMEWORK_STATUS.md` remains the
+living module inventory.
+
+## [2026-06-24] D24 — Phase 6B cross-repo wiring postponed indefinitely
+**Context:** Phase 6B planned CryoBacktester and CryoTrader PRs to consume `cryocore`, plus gated
+live integration tests. The user will not edit CryoBacktester and cannot do cross-repo wiring now.
+**Decision:** **6B is postponed indefinitely.** CryoQuant remains a self-contained local framework.
+No sibling-repo changes are planned from this workspace.
+**Still in scope:**
+- Read-only options parquet reads via `CRYOBACKTESTER_DATA_DIR` (D9 — unchanged).
+- `cryobt_bridge`, `cryotrader_adapter`, publishers as library code (shape-tested; no live sibling runs required).
+**Out of scope until reopened:** `pip install -e` sibling consumption, CryoTrader paper-slot live test,
+pineforge sunset note, `cryocore` external promotion.
+**Consequences:** Phase 6 is **complete** at 6A. Live tests in `tests/live/test_phase6_live.py` and
+`test_cryobt_bridge_smoke` remain as opt-in future-integration documentation, not phase gates.
 
 ## [2026-05-20] M1 — v1.0 first release complete
 **Context:** All six phases (0–5) of the implementation spec are implemented and tested.

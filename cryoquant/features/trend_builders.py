@@ -393,40 +393,7 @@ def _get_macro_series(
     return None
 
 
-def _align_to_index(
-    target_idx: pd.DatetimeIndex,
-    series: pd.Series,
-    ffill_limit: int = _MACRO_FFILL_LIMIT,
-) -> pd.Series:
-    """Forward-fill ``series`` onto ``target_idx`` via merge_asof.
-
-    Staleness cap: values older than ``ffill_limit`` calendar days are set to
-    NaN.  This prevents monthly series (CPI, NFCI) from being propagated
-    indefinitely during data gaps.
-    """
-    if series is None or series.empty:
-        return pd.Series(np.nan, index=target_idx)
-
-    s = series.copy()
-    if s.index.tz is None:
-        s.index = s.index.tz_localize("UTC")
-
-    target = pd.DataFrame({"ts": target_idx}, index=target_idx)
-    src = pd.DataFrame(
-        {"ts_src": s.index, "val": s.to_numpy()}
-    ).sort_values("ts_src")
-    merged = pd.merge_asof(target, src, left_on="ts", right_on="ts_src", direction="backward")
-
-    result = pd.Series(merged["val"].to_numpy(), index=target_idx, name=series.name)
-
-    ts_src = pd.DatetimeIndex(merged["ts_src"])
-    if ts_src.tz is None:
-        ts_src = ts_src.tz_localize("UTC")
-    lag_days = (target_idx - ts_src).days
-    result[lag_days > ffill_limit] = np.nan
-    return result
-
-
+from cryoquant.features.align import align_series as _align_to_index
 def _compute_macro_features(
     frames: dict[DatasetRef, pd.DataFrame],
 ) -> pd.DataFrame:
