@@ -1,0 +1,195 @@
+# Machine-readable feature catalog — mirrors FEATURE_CATALOG.md
+version: 1
+review_status: signed_off
+review_date: "2026-06-28"
+catalog_amendment: "2026-06-28"
+amendment_notes: >
+  Layer F: add dvol_rank_252 (core), dvol_rank_90 + dvol_chg_7d (extended);
+  demote vol_of_vol from core to extended (Deribit IV percentile convention).
+build_status: complete
+build_date: "2026-06-28"
+rebuild_after_amendment: "2026-06-28"
+manual_validation_date: "2026-06-28"
+manual_validation_notes: "btc_rsi_14 + btc_dvol_30d spot-checked vs TradingView/Deribit (2026-06-01)"
+build_artifacts:
+  - data/features.parquet
+  - data/features_schema.json
+
+tags:
+  core: "Default Phase 4 model candidate (KICKOFF D-6, §7.3 starting set)"
+  extended: "Built in Phase 2; ablation / selection only; prune first under budget"
+
+panel:
+  index: [timestamp, asset]
+  assets: [BTC, ETH, SOL]
+  cadence: 1d
+  timezone: UTC
+
+tier_counts:
+  total: 137
+  core: 62
+  extended: 75
+
+builders:
+  - id: trend_features
+    module: cryoquant.features.trend_builders.TrendFeatures
+    version: "1"
+    scope: per_asset
+    inputs: [ohlcv_1d, ohlcv_1h_optional]
+    prefix: "{asset_lower}_"
+    column_count: 28
+    core_count: 11
+    extended_count: 17
+
+  - id: cross_asset
+    module: cryoquant.features.trend_builders.CrossAssetFeatures
+    version: "1"
+    scope: global
+    core_count: 5
+    extended_count: 2
+
+  - id: crypto_features
+    module: cryoquant.features.crypto_builders.CryptoFeatures
+    version: "1"
+    scope: mixed
+    core_count: 8
+    extended_count: 10
+
+  - id: macro_features
+    module: cryoquant.features.trend_builders.MacroFeatures
+    version: "1"
+    scope: global
+    extensions: [sofr, fomc]
+    core_count: 8
+    extended_count: 5
+
+  - id: network_features
+    module: cryoquant.features.crypto_builders.NetworkFeatures
+    version: "1"
+    scope: btc_only
+    core_count: 2
+    extended_count: 4
+
+  - id: options_features
+    module: cryoquant.features.options
+    version: "1"
+    scope: per_asset
+    assets: [BTC, ETH]
+    core_count: 6
+    extended_count: 10
+
+# Expanded column names (assets BTC/ETH/SOL where {a} = btc|eth|sol)
+columns:
+  core:
+    trend_per_asset:
+      - "{a}_ret_5d"
+      - "{a}_ret_20d"
+      - "{a}_close_vs_ema20_pct"
+      - "{a}_donchian_pos_55"
+      - "{a}_bb_width"
+      - "{a}_rsi_14"
+      - "{a}_rv_24"
+      - "{a}_rv_rank"
+      - "{a}_atr_pct"
+      - "{a}_trend_regime"
+      - "{a}_vol_expansion"
+      - "{a}_dow"
+    cross_asset:
+      - eth_btc_ratio
+      - eth_btc_ratio_chg_7d
+      - sol_btc_ratio
+      - sol_btc_ratio_chg_7d
+      - rs_vs_spy_20d
+    crypto:
+      - "{a}_funding_rate"
+      - "{a}_funding_z21"
+      - "{a}_oi_usd"
+      - fear_greed
+      - fear_greed_z21
+      - stablecoin_chg_7d_pct
+    macro:
+      - dxy_ema_dir
+      - yc_sign
+      - yc_trend
+      - sofr_level
+      - vix_z20
+      - macro_risk_off
+      - is_fomc_decision_day
+      - days_until_fomc
+    network:
+      - hr_change_7d
+      - active_addr_change_7d
+    options_per_asset:
+      - "{a}_dvol_30d"
+      - "{a}_iv_minus_rv"
+      - "{a}_dvol_rank_252"
+
+  extended:
+    trend_per_asset:
+      - "{a}_ret_1d"
+      - "{a}_close_vs_ema50_pct"
+      - "{a}_close_vs_ema200_pct"
+      - "{a}_donchian_pos_20"
+      - "{a}_bb_pct_b"
+      - "{a}_adx_14"
+      - "{a}_macd_hist_norm"
+      - "{a}_slope_10d_pct"
+      - "{a}_vol_ratio"
+      - "{a}_vol_z"
+      - "{a}_obv_vs_ema"
+      - "{a}_close_52w_hi_pct"
+      - "{a}_is_us_session"
+      - "{a}_close_vs_ema24_1h_pct"
+      - "{a}_ret_4h"
+      - "{a}_vol_z_1h"
+    cross_asset:
+      - rs_vs_spy_60d
+      - gld_btc_ratio
+    crypto:
+      - "{a}_oi_chg_7d"
+      - stablecoin_supply
+      - stablecoin_z30
+      - etf_flow_1d_usd
+      - etf_flow_5d_usd
+      - etf_flow_z21
+      - mstr_btc_acq
+      - mstr_holdings_btc
+    macro:
+      - dxy_level
+      - sofr_chg_63d
+      - vix_level
+      - days_since_fomc
+      - is_fomc_week
+    network:
+      - hr_zscore_90d
+      - active_addr_z30
+      - tx_cnt_z21
+      - fee_btc_z21
+    options_per_asset:
+      - "{a}_vol_of_vol"
+      - "{a}_dvol_chg_7d"
+      - "{a}_dvol_rank_90"
+      - "{a}_atm_iv_30d"
+      - "{a}_term_slope"
+      - "{a}_risk_reversal_25d"
+    meta:
+      - options_source
+
+phase4_defaults:
+  start_from_tag: core
+  max_after_selection: 100
+  config_key: feature_budget_max
+  head_hints:
+    goal1_directional: [core.trend_per_asset, core.cross_asset, core.crypto, core.macro, core.network]
+    goal2_vol_exceedance: [core.trend_per_asset, core.options_per_asset, core.macro, core.crypto]
+
+options_meta:
+  column: options_source
+  tag: extended
+  values: [none, dvol, chain]
+
+era_gates:
+  dev_end: "2024-05-31"
+  holdout_start: "2024-06-01"
+  etf_dev_days: 102
+  chain_first_date: "2025-04-11"

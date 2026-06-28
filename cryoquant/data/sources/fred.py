@@ -44,6 +44,7 @@ _ALIASES: dict[str, str] = {
     "BREAKEVEN10Y":    "T10YIE",      # 10-year breakeven inflation rate
     "SOFR":            "SOFR",        # Secured overnight financing rate (from 2018)
     "YIELD_CURVE":     "T10Y2Y",      # 10Y-2Y Treasury spread (inversion = recession signal)
+    "T10Y2Y":          "T10Y2Y",      # alias for direct FRED id
     "YIELD_CURVE_3M":  "T10Y3M",      # 10Y-3M spread (Fed's preferred recession indicator)
 
     # Inflation / macro

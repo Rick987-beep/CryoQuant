@@ -1,0 +1,56 @@
+# Machine-readable label catalog — mirrors LABEL_CATALOG.md
+version: 1
+review_status: signed_off
+review_date: "2026-06-28"
+path_touch: deferred_phase6
+build_status: complete
+build_date: "2026-06-28"
+manual_validation_date: "2026-06-28"
+manual_validation_notes: "log_return_h5 BTC 2025-06-15; up_win_volscaled_h5 ETH 2026-03-01 vs Binance OHLCV"
+build_artifacts:
+  - data/labels.parquet
+  - data/labels_schema.json
+
+horizons:
+  - id: T+1d
+    horizon_bars: 1
+  - id: T+5d
+    horizon_bars: 5
+  - id: T+10-21d
+    horizon_bars: 14
+
+families:
+  - id: directional
+    assets: [BTC, ETH, SOL]
+    labels: [up_win, down_win, magnitude_win]
+  - id: log_return
+    assets: [BTC, ETH, SOL]
+    labels: [log_return]
+  - id: forward_realized_vol
+    assets: [BTC, ETH, SOL]
+    labels: [fwd_rv]
+  - id: exceedance_call
+    assets: [BTC, ETH]
+    labels: [exceedance_call]
+  - id: exceedance_put
+    assets: [BTC, ETH]
+    labels: [exceedance_put]
+  - id: vrp_realization
+    assets: [BTC, ETH]
+    labels: [vrp_realized]
+  - id: path_touch
+    status: deferred
+    note: Phase 6 ExitRule / management policy
+
+parquet_schema:
+  columns:
+    - name: timestamp
+      dtype: datetime64[ns, UTC]
+    - name: asset
+      dtype: string
+    - name: horizon_id
+      dtype: string
+    - name: label_name
+      dtype: string
+    - name: value
+      dtype: float64

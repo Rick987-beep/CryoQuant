@@ -194,3 +194,102 @@ def _validate_series(data: pd.Series, series_id: str) -> pd.Series:
     series.index = idx
     series.index.name = "timestamp"
     return series
+
+
+def _validate_frame(data: pd.DataFrame, series_id: str) -> pd.DataFrame:
+    frame = data.copy()
+    idx = pd.DatetimeIndex(frame.index)
+    if idx.tz is None:
+        idx = idx.tz_localize("UTC")
+    else:
+        idx = idx.tz_convert("UTC")
+    frame.index = idx
+    frame.index.name = "timestamp"
+    return frame
+
+
+def write_frame(
+    source: str,
+    series_id: str,
+    data: pd.DataFrame,
+    *,
+    force: bool = False,
+) -> None:
+    """Persist a multi-column time-series (e.g. value + available_utc) to macro store."""
+    frame = _validate_frame(data, series_id)
+    if frame.empty:
+        log.warning("write_frame: %s/%s — empty frame, nothing to write", source, series_id)
+        return
+
+    frame_sorted = frame.sort_index()
+    groups = frame_sorted.groupby([frame_sorted.index.year, frame_sorted.index.month])
+
+    all_paths: list[Path] = []
+    for (year, month), chunk in groups:
+        path = _partition_path(source, series_id, year, month)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        if not force and path.exists():
+            existing_df = pd.read_parquet(path)
+            existing_df.index = pd.DatetimeIndex(existing_df.index)
+            if existing_df.index.tz is None:
+                existing_df.index = existing_df.index.tz_localize("UTC")
+            chunk = pd.concat([existing_df, chunk])
+            chunk = chunk[~chunk.index.duplicated(keep="last")].sort_index()
+
+        chunk.to_parquet(path)
+        all_paths.append(path)
+
+    if all_paths:
+        from cryocore.instruments import Symbol
+        sym = Symbol(source, series_id)
+        cat.register(
+            source=source,
+            symbol=sym,
+            tf="1d",
+            path=all_paths[0].parent,
+            row_count=len(frame_sorted),
+            ts_min=frame_sorted.index.min().to_pydatetime(),
+            ts_max=frame_sorted.index.max().to_pydatetime(),
+            schema_hash="macro_frame",
+        )
+        log.info(
+            "macro_store: %s/%s frame → %d rows [%s → %s]",
+            source, series_id, len(frame_sorted),
+            frame_sorted.index.min().date(), frame_sorted.index.max().date(),
+        )
+
+
+def load_frame(
+    source: str,
+    series_id: str,
+    start: datetime,
+    end: datetime | None = None,
+) -> pd.DataFrame:
+    """Load a multi-column macro frame from disk."""
+    end_dt = end or datetime.now(timezone.utc)
+    periods = pd.period_range(start=start, end=end_dt, freq="M")
+    parts: list[pd.DataFrame] = []
+
+    for p in periods:
+        path = _partition_path(source, series_id, p.year, p.month)
+        if path.exists():
+            df = pd.read_parquet(path)
+            idx = pd.DatetimeIndex(df.index)
+            if idx.tz is None:
+                idx = idx.tz_localize("UTC")
+            else:
+                idx = idx.tz_convert("UTC")
+            df.index = idx
+            parts.append(df)
+
+    if not parts:
+        raise FileNotFoundError(
+            f"No macro frame on disk for {source}/{series_id} in [{start.date()}, {end_dt.date()}]."
+        )
+
+    frame = pd.concat(parts)
+    frame = frame[~frame.index.duplicated(keep="last")].sort_index()
+    start_ts = pd.Timestamp(start, tz="UTC") if start.tzinfo is None else pd.Timestamp(start).tz_convert("UTC")
+    end_ts = pd.Timestamp(end_dt, tz="UTC") if end_dt.tzinfo is None else pd.Timestamp(end_dt).tz_convert("UTC")
+    return frame.loc[start_ts:end_ts]

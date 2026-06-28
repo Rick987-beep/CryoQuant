@@ -50,6 +50,12 @@ FRED_API_KEY: str | None = os.environ.get("FRED_API_KEY")
 # See: https://twelvedata.com/account/api-keys
 TWELVEDATA_API_KEY: str | None = os.environ.get("TWELVEDATA_API_KEY")
 
+# SoSoValue OpenAPI (deprecated for ETF/MSTR — free tier 30d cap).
+SOSOVALUE_API_KEY: str | None = os.environ.get("SOSOVALUE_API_KEY")
+
+# Parse.bot Farside ETF wrapper — optional fallback when direct scrape blocked.
+PARSE_API_KEY: str | None = os.environ.get("PARSE_API_KEY")
+
 
 # Optional local overrides (gitignored)
 try:

@@ -1,0 +1,69 @@
+# BTCpredict v1 data universe — generated from DATA_SOURCES.md (signed off 2026-06-28).
+# E1–E2: Farside Investors (12 tickers incl. BTC mini trust). E4–E5: Strategy.com.
+# H1/H2 derived in panel_build (Phase 2 complete 2026-06-28).
+
+version: 1
+review_date: "2026-06-28"
+cadence_primary: 1d
+cadence_intraday: 1h
+
+ohlcv:
+  - {id: A1, venue: binance.spot, ticker: BTCUSDT, tf: 1d, start: "2018-01-01"}
+  - {id: A2, venue: binance.spot, ticker: BTCUSDT, tf: 1h, start: "2020-01-01"}
+  - {id: A3, venue: binance.spot, ticker: ETHUSDT, tf: 1d, start: "2018-01-01"}
+  - {id: A4, venue: binance.spot, ticker: ETHUSDT, tf: 1h, start: "2020-01-01"}
+  - {id: A5, venue: binance.spot, ticker: SOLUSDT, tf: 1d, start: "2020-01-01"}
+  - {id: A6, venue: binance.spot, ticker: SOLUSDT, tf: 1h, start: "2020-01-01"}
+
+perp:
+  - {id: B1, venue: binance.perp, ticker: BTCUSDT, series: funding, start: "2020-01-01"}
+  - {id: B2, venue: binance.perp, ticker: ETHUSDT, series: funding, start: "2020-01-01"}
+  - {id: B3, venue: xoomar, ticker: BTCUSDT, series: open_interest, start: "2021-01-01",
+     notes: "Free daily OI via Xoomar Pulse (Binance archives); pre-2021 unavailable"}
+  - {id: B4, venue: xoomar, ticker: ETHUSDT, series: open_interest, start: "2021-01-01",
+     notes: "Same as B3"}
+  - {id: B5, venue: binance.perp, ticker: SOLUSDT, series: funding, start: "2022-01-01"}
+
+options:
+  - {id: C1, venue: deribit, underlying: BTC, series: dvol, start: "2021-03-31"}
+  - {id: C2, venue: deribit, underlying: ETH, series: dvol, start: "2022-01-01"}
+  - {id: C3, venue: deribit, underlying: BTC, series: chain, start: "2025-04-01", read_only: true}
+  - {id: C4, venue: deribit, underlying: ETH, series: chain, start: "2025-04-01", read_only: true}
+  - {id: C5, venue: deribit, underlying: [BTC, ETH], series: chain_forward, start: "2025-04-01"}
+
+macro:
+  - {id: D1, source: fred, series_id: DXY, start: "2010-01-01"}
+  - {id: D2, source: fred, series_id: T10Y2Y, start: "2010-01-01"}
+  - {id: D3, source: fred, series_id: SOFR, start: "2018-04-01"}
+  - {id: D4, source: cboe, series_id: VIX_CLOSE, start: "2010-01-01"}
+  - {id: D5, source: yahoo, ticker: SPY, tf: 1d, start: "2010-01-01"}
+  - {id: D6, source: yahoo, ticker: GLD, tf: 1d, start: "2010-01-01"}
+
+macro_events:
+  - {id: D14, source: fed_calendar, series_id: FOMC_DECISION_DAYS, start: "2018-01-01",
+     notes: "Binary flag on FOMC rate-decision announcement days; Fed published calendar"}
+
+institutional:
+  - {id: E1, source: farside, series: etf_flow_aggregate_us, start: "2024-01-11",
+     notes: "Farside Investors daily Total (US$m → USD); full history from ETF launch"}
+  - {id: E2, source: farside, series: etf_flow_per_ticker,
+     tickers: [IBIT, FBTC, GBTC, ARKB, BITB, BTC, EZBC, BRRR, HODL, BTCO, BTCW, MSBT],
+     start: "2024-01-11",
+     notes: "BTC = Grayscale Bitcoin Mini Trust; 12 Farside columns incl. MSBT from 2025-04"}
+  - {id: E4, source: strategy, series: mstr_btc_purchases, ticker: MSTR, start: "2020-08-10",
+     notes: "Strategy.com official purchase table (__NEXT_DATA__)"}
+  - {id: E5, source: strategy, series: mstr_btc_holdings, ticker: MSTR, start: "2020-08-10"}
+
+crypto_alt:
+  - {id: F1, source: fear_greed, series_id: CRYPTO_FEAR_GREED, start: "2018-01-01"}
+  - {id: F2, source: defillama, series_id: STABLECOIN_SUPPLY, start: "2018-01-01"}
+
+network:
+  - {id: G1, source: coinmetrics, metric: HashRate, asset: btc, start: "2018-01-01"}
+  - {id: G2, source: coinmetrics, metric: AdrActCnt, asset: btc, start: "2018-01-01"}
+  - {id: G3, source: coinmetrics, metric: TxCnt, asset: btc, start: "2018-01-01"}
+  - {id: G4, source: coinmetrics, metric: FeeTotNtv, asset: btc, start: "2018-01-01"}
+
+cross_asset:
+  - {id: H1, derived: ETH_BTC_RATIO, from: [ETHUSDT, BTCUSDT]}
+  - {id: H2, derived: SOL_BTC_RATIO, from: [SOLUSDT, BTCUSDT]}

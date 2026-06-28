@@ -1,0 +1,1 @@
+"""BTCpredict study-local package."""

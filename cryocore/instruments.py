@@ -77,7 +77,8 @@ _DEFAULT_INSTRUMENTS: list[Instrument] = [
     Instrument(Symbol("binance.spot", "BTCUSDT"),  "crypto",    "USDT", "crypto_24_7"),
     Instrument(Symbol("binance.spot", "ETHUSDT"),  "crypto",    "USDT", "crypto_24_7"),
     Instrument(Symbol("binance.perp", "BTCUSDT"),  "crypto",    "USDT", "crypto_24_7"),
-    Instrument(Symbol("binance.perp", "ETHUSDT"),  "crypto",    "USDT", "crypto_24_7"),
+    Instrument(Symbol("binance.spot", "SOLUSDT"),  "crypto",    "USDT", "crypto_24_7"),
+    Instrument(Symbol("binance.perp", "SOLUSDT"),  "crypto",    "USDT", "crypto_24_7"),
     Instrument(Symbol("deribit",      "BTC"),       "crypto",    "USD",  "crypto_24_7"),
     Instrument(Symbol("deribit",      "ETH"),       "crypto",    "USD",  "crypto_24_7"),
 
