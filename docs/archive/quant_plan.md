@@ -81,7 +81,7 @@ middle (pandas joins, optional `FeatureBuilder`, analysis-local scripts).
 | **B — Study** | Many symbols, sweeps | `ingest` + `breakout_sim` / sweep infra |
 | **C — ML** | Many heterogeneous tracks | `DataPanel`, `walk_forward_fit`, `scripts/ml_multi_source.py` |
 
-**Promote to `cryoquant/`** when two analyses need the same pattern. Details:
+**Promote to `cryoquant/`** when two studies need the same pattern. Details:
 [workflow_plan.md](workflow_plan.md), [FRAMEWORK_STATUS.md](FRAMEWORK_STATUS.md).
 
 ### 2.2 Features — two tiers
@@ -221,7 +221,7 @@ CryoQuant/
 │   │
 │   └── cli/                        # catalog + models (live); backtest/signals (compat stubs)
 │
-├── analyses/                       # Named analyses — the "use" layer (config + thin scripts)
+├── studies/                       # Named studies — the "use" layer (config + thin scripts)
 │
 ├── scripts/                        # Runnable end-to-end examples (e.g. ema_cross_backtest.py)
 │
@@ -425,7 +425,7 @@ Portfolio trade-frequency governor, ingest QA JSON, Panel dashboards, `butterfly
 
 ## 7.1 Post-v1 extensions *(Jun 2026, outside original phase boundaries)*
 
-Shipped while running analyses (trend-following, quickwintrend). These extend — not replace — Phases 1 and 5:
+Shipped while running studies (trend-following, quickwintrend). These extend — not replace — Phases 1 and 5:
 
 | Area | What was added | ADR |
 |---|---|---|
@@ -433,8 +433,8 @@ Shipped while running analyses (trend-following, quickwintrend). These extend �
 | **Features** | `trend_builders` (`TrendFeatures`, `MacroFeatures`, `CrossAssetFeatures`); `filters`; extra primitives | D21 |
 | **Backtest** | `metrics`, `trades`, `scoring`, `bundle`, `sweep_collector`, `breakout_sim` | D19, D20 |
 
-Analyses live under `analyses/<name>/` with local `config.yaml` + thin run scripts. Generated
-`reports/` are gitignored. The framework never imports from `analyses/`.
+Analyses live under `studies/<name>/` with local `config.yaml` + thin run scripts. Generated
+`reports/` are gitignored. The framework never imports from `studies/`.
 
 ---
 
@@ -446,7 +446,7 @@ Analyses live under `analyses/<name>/` with local `config.yaml` + thin run scrip
 - **No look-ahead, ever.** Every feature builder has a unit test that asserts `feature[T]` is unchanged when bars after `T` are masked.
 - **IDs:** sha1 of canonical-JSON-encoded inputs. Pattern lifted from `pineforge.RunSpec.run_id()`.
 - **Storage:** parquet for data/features/predictions; DuckDB for catalogs and registries; HTML for human reports; CSV only ad-hoc.
-- **Reproducibility:** every study = `analyses/<name>/config.yaml` (or equivalent) + a thin run script under `analyses/` or `scripts/`. No "I tweaked the script and reran" — bump the config. A central `cryoquant/experiments/` tree is **not** used (YAGNI).
+- **Reproducibility:** every study = `studies/<name>/config.yaml` (or equivalent) + a thin run script under `studies/` or `scripts/`. No "I tweaked the script and reran" — bump the config. A central `cryoquant/experiments/` tree is **not** used (YAGNI).
 
 ---
 

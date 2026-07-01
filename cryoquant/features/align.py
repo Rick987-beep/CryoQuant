@@ -3,6 +3,12 @@
 Public helpers for joining OHLCV bars with macro/scalar series from different
 frequencies or timestamps.  For higher-timeframe bar alignment onto a lower-TF
 frame, use ``primitives.htf_align`` instead.
+
+Public interface::
+
+    align_series, align_frame_column, align_many, join_features
+    align_by_available_utc  — event frames with publication-time index
+    union_daily_index       — sorted union of daily OHLCV indices
 """
 from __future__ import annotations
 
@@ -94,6 +100,50 @@ def join_features(
             raise ValueError(f"duplicate columns on join: {sorted(overlap)}")
         out = out.join(other, how=how)
     return out
+
+
+def align_by_available_utc(
+    target_index: pd.DatetimeIndex,
+    frame: pd.DataFrame,
+    *,
+    value_col: str = "value",
+    available_col: str = "available_utc",
+    ffill_limit: int = 5,
+    name: str | None = None,
+) -> pd.Series:
+    """Align sparse/event frames using ``available_utc`` (backward as-of bar time).
+
+  Used for ETF flows, corporate treasury events, and on-chain metrics where ingest
+  stores ``(value, available_utc)``.
+    """
+    out_name = name or value_col
+    if frame is None or frame.empty or value_col not in frame.columns:
+        return pd.Series(np.nan, index=target_index, name=out_name)
+
+    target_index = pd.DatetimeIndex(target_index).tz_convert("UTC").as_unit("ns")
+    avail = pd.DatetimeIndex(pd.to_datetime(frame[available_col], utc=True)).as_unit("ns")
+    s = pd.Series(frame[value_col].to_numpy(), index=avail, name=out_name)
+    s = s[~s.index.duplicated(keep="last")].sort_index()
+    return align_series(target_index, s, ffill_limit=ffill_limit, name=s.name)
+
+
+def union_daily_index(frames: dict[str, pd.DataFrame]) -> pd.DatetimeIndex:
+    """Sorted union of daily DatetimeIndex values from OHLCV frames."""
+    parts: list[pd.DatetimeIndex] = []
+    for df in frames.values():
+        if df is not None and not df.empty:
+            idx = pd.DatetimeIndex(df.index)
+            if idx.tz is None:
+                idx = idx.tz_localize("UTC")
+            else:
+                idx = idx.tz_convert("UTC")
+            parts.append(idx)
+    if not parts:
+        return pd.DatetimeIndex([], tz="UTC")
+    out = parts[0]
+    for p in parts[1:]:
+        out = out.union(p)
+    return out.sort_values()
 
 
 def _ensure_utc_index(series: pd.Series) -> pd.Series:

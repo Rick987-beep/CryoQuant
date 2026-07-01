@@ -1,0 +1,123 @@
+# Phase 6 backtest register — mirrors SPEC §12.0
+version: 1
+review_status: signed_off
+review_date: "2026-06-30"
+build_status: complete
+build_date: "2026-06-30"
+upstream: SPEC.md §12, OPTIONS_SURFACE_PROXY_PROPOSAL.md §5, validation.yaml, phase4_training_manifest.json
+config_gate: phase5_complete in config.yaml
+
+# --- Locked decisions (2026-06-30) ---
+
+chain:
+  backtest_on_dev: false
+  promotion_phase: 7
+  smoke_assets: [BTC]
+  smoke_max_dates: 5
+  rationale: >
+    Zero Deribit chain parquets in dev (pre-2024-06). Chains exist only in hold-out
+    (2025-04-11+). Phase 6 builds infra + dev VRP proxy; Phase 7 runs chain promotion once (P-8).
+
+assets:
+  promotion: BTC
+  proxy_report: [BTC, ETH]  # ETH VRP labels scored in report; no ETH chains
+  exclude_chain: [ETH]
+  rationale: "No ETH historical option chains (C4 deferred). BTC-only chain smoke and Phase 7 book."
+
+signal:
+  vol_gate: "dvol - pred_fwd_rv"
+  vol_source:
+    dvol: "{asset_lower}_dvol_30d"
+    pred_fwd_rv: realized_vol OOS run for horizon
+  exceedance_gate:
+    enabled: true
+    assets: [BTC]
+    horizons: [T+1d, T+5d]
+    max_delta: 0.15
+    source: quantile OOS → piecewise_linear_cdf
+  tilt:
+    modes: [symmetric, model_tilted]
+    directional_label: up_win_volscaled
+    put_heavy_if_p_up_below: 0.45   # 1 - option_book.tilt_threshold
+    call_heavy_if_p_up_above: 0.55  # option_book.tilt_threshold
+    rationale: >
+      Directional dev null (AUC ≈ 0.50) expected. Include both tilt modes in proxy
+      sweep — low cost; compare symmetric vs model_tilted in leaderboard.
+
+structures:
+  default: credit_spread
+  sweep_in_phase7: [strangle, credit_spread]
+
+dev_proxy:
+  target_label: vrp_realized
+  baseline: naive_vrp_positive  # fire when iv_minus_rv > 0
+  slice: "timestamp < splits.holdout_start"
+  metrics: [sharpe, deflated_sharpe, cvar, expectancy, sign_hit_rate, n_trades]
+  cost_model: spread_bps
+  spread_bps: 10
+
+sweep:
+  phase: 6
+  axes:
+    asset: [BTC]
+    horizon_id: [T+1d, T+5d]
+    vrp_threshold: [0.0, 0.5, 1.0]
+    tilt_mode: [symmetric, model_tilted]
+    min_physical_edge: [0.0, 0.02]
+  selection_metric: deflated_sharpe
+  cvar_cap_key: risk.max_cvar_loss_pct
+  log_trials: true
+
+chain_sweep:
+  phase: 7
+  register: holdout.yaml
+  mode: report_all
+  selection_on_holdout: false
+  frozen_signal: data/phase6_best_config.json
+  preregistered_primary:
+    target_delta: 0.15
+    dte: 7
+    structure: strangle
+    exit_rule: hold_to_expiry
+  axes:
+    target_delta: [0.10, 0.15, 0.20]
+    dte: [1, 2, 7, 14, 21, 30]
+    structure: [credit_spread, strangle]
+    exit_rule: [hold_to_expiry]
+
+spot_sanity:
+  enabled: true
+  blocks_phase6: false
+  note: "Goal 1 directional null on dev — informational only."
+
+gates:
+  phase6_dev:
+    G1: model_proxy_deflated_sharpe_gt_naive
+    G2: btc_exceedance_ece_lt_0.08  # h1/h5 from Phase 5
+    G3: proxy_cvar_gte_neg_max_cvar_loss_pct
+    G4: proxy_expectancy_gt_0
+    G5: spot_directional_informational
+  phase7_holdout:
+    primary: G2  # physical P(OTM) vs market delta — thesis test (KICKOFF §1.2.1)
+    G1: chain_deflated_sharpe_gt_naive_seller  # secondary — report even if fail
+    G2: calibration_gap_gt_0_or_ece_lt_0.05   # primary
+    G3: chain_cvar_gte_neg_max_cvar_loss_pct  # secondary
+    G4: chain_expectancy_gt_0_after_bid_ask    # secondary
+    failure_is_valid_completion: true
+
+artifacts:
+  backtest_report: data/phase6_backtest_report.json
+  best_config: data/phase6_best_config.json
+  qa_report: data/phase6_qa_report.json
+  human_report: reports/phase6_backtest_report.txt
+  bundle: reports/bundles/primary/
+
+completion:
+  requires_phase5_complete: true
+  chain_smoke_required: true
+  proxy_gates_required: [G3, G4]
+  proxy_gates_warning: [G1]
+  errors_on:
+    - holdout_rows_in_proxy
+    - chain_smoke_zero_fires
+    - missing_best_config

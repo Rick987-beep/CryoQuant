@@ -2,6 +2,14 @@
 
 Docs: https://xoomar.com/markets/api/open-interest
 No API key. Rate limit ~30 req/min/IP. Up to 5000 rows per call.
+
+Public interface::
+
+    fetch_open_interest_daily(ticker, start, end, *, session) -> pd.DataFrame
+
+Columns: ``open_interest``, optional ``open_interest_usd``, ``long_short_ratio``.
+Persist via ``macro_store.write_series("xoomar", f"{ticker}_open_interest", ...)``.
+History from 2021-01; pre-2021 is NaN by design.
 """
 from __future__ import annotations
 

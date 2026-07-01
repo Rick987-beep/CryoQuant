@@ -12,7 +12,7 @@ indicators (2–3 series) and complex ML studies (20+ heterogeneous tracks).
 **Principles (unchanged):**
 - **Strict at seams:** `Symbol`, `OHLCVBars`, `Signal`, no lookahead, `TRADE_COLUMNS`.
 - **Loose in the middle:** pandas joins, optional `FeatureBuilder`, analysis-local glue.
-- **Promote on reuse:** move to `cryoquant/` when two analyses need the same pattern.
+- **Promote on reuse:** move to `cryoquant/` when two studies need the same pattern.
 - **Backward compatibility:** additive modules only; no signature changes on existing public APIs;
   CLI stub subcommands (`backtest`, `signals publish`) retained until explicitly deprecated (D22).
 
@@ -243,7 +243,7 @@ Keep scripts &lt;150 lines each; runnable with cached data where possible.
 | Feature catalog YAML | YAGNI |
 | ML sweep / Optuna harness | Add only when a study needs it; use `fit_loop` first |
 | `load_any` async / parallel fetch | `ingest.run_ingest` already batch-loads |
-| Changes to `analyses/` | Out of scope |
+| Changes to `studies/` | Out of scope |
 | Remove CLI `backtest` / `signals` stubs | **Do not** — users still call them (D22) |
 | Wire CLI backtest/publish to library | Deferred; stubs stay until a real implementation ships |
 
@@ -275,7 +275,7 @@ Keep scripts &lt;150 lines each; runnable with cached data where possible.
 | Path | When | Sections to read | Code entry |
 |---|---|---|---|
 | **A — Quick indicator** | 2–5 series, rule-based | §4 load, §5 primitives, §8 signals, §9 backtest | `scripts/quick_indicator.py` |
-| **B — Study / sweep** | Many symbols, parameter grids | §4 ingest, §5 builders, §9 + sweep docs | `analyses/` pattern, `breakout_sim` |
+| **B — Study / sweep** | Many symbols, parameter grids | §4 ingest, §5 builders, §9 + sweep docs | `studies/` pattern, `breakout_sim` |
 | **C — ML indicator** | 10–20+ tracks, ProbSignal | §4–8, `fit_loop` | `scripts/ml_multi_source.py` |
 
 Include decision tree (mermaid) and “when to promote to framework” box.
@@ -294,7 +294,7 @@ Include decision tree (mermaid) and “when to promote to framework” box.
 
 **Update §12 Best practices**
 - Add “strict at seams” table (data in, signal out).
-- Promote rule: 2 analyses → framework.
+- Promote rule: 2 studies → framework.
 
 **Update §13 Workflow**
 - Split into Path A / B / C checklists (not one linear 8-step list).

@@ -1,19 +1,12 @@
 """CryoQuant backtest harness.
 
-Phase 5 deliverables (v1.0):
+Deliverables:
     spot_pnl       — vectorised fixed-hold spot simulation
     option_lookup  — Deribit option chain P&L evaluation
-    robustness     — deflated Sharpe, bootstrap CI
+    short_vol      — sell-side option economics
+    robustness     — deflated Sharpe, bootstrap CI, trial log
     reports        — HTML report rendering
-    cryobt_bridge  — CryoBacktester Strategy adapter
-
-June 2026 additions:
-    metrics        — shared performance metrics (CAGR, Sortino, Calmar, …)
-    trades         — canonical TradeLog schema and enrich_trades
-    scoring        — percentile-composite leaderboard scoring
     bundle         — sweep artifact I/O (RunBundle)
-    sweep_collector — generic multi-run aggregator
-    breakout_sim   — channel-breakout simulator with dynamic trailing exits
 """
 from cryoquant.backtest.spot_pnl import SpotResult, simulate
 from cryoquant.backtest.option_lookup import ExitRule, OptionResult, evaluate
@@ -31,43 +24,63 @@ from cryoquant.backtest.scoring import ScoringConfig, score_leaderboard
 from cryoquant.backtest.bundle import RunBundle, write_bundle, load_bundle
 from cryoquant.backtest.sweep_collector import RunRecord, SweepCollection, collect_runs
 from cryoquant.backtest.breakout_sim import BreakoutConfig, simulate_breakout
+from cryoquant.backtest.short_vol import ShortVolConfig, ShortVolResult, evaluate_short_vol
+from cryoquant.backtest.short_vol_metrics import (
+    calibration_gap,
+    cvar_loss,
+    otm_rate_vs_delta,
+    trade_sharpe,
+)
+from cryoquant.backtest.trial_log import append_trial, append_training_session, count_trials, trial_log_path
 
 __all__ = [
-    # spot_pnl (v1.0)
+    # spot_pnl
     "simulate",
     "SpotResult",
-    # option_lookup (v1.0)
+    # option_lookup
     "evaluate",
     "ExitRule",
     "OptionResult",
-    # robustness (v1.0)
+    # robustness + trial log
     "deflated_sharpe",
     "bootstrap_ci",
-    # reports (v1.0 + sweep_leaderboard added June 2026)
+    "trial_log_path",
+    "count_trials",
+    "append_trial",
+    "append_training_session",
+    # reports
     "render",
     "render_spot_result",
     "render_option_result",
     "render_sweep_leaderboard",
-    # bridge (v1.0)
+    # bridge
     "CryoBTAdapter",
-    # metrics (June 2026)
+    # metrics
     "compute_metrics",
     "empty_metrics",
-    # trades (June 2026)
+    # trades
     "TRADE_COLUMNS",
     "enrich_trades",
-    # scoring (June 2026)
+    # scoring
     "ScoringConfig",
     "score_leaderboard",
-    # bundle (June 2026)
+    # bundle
     "RunBundle",
     "write_bundle",
     "load_bundle",
-    # sweep_collector (June 2026)
+    # sweep_collector
     "RunRecord",
     "SweepCollection",
     "collect_runs",
-    # breakout_sim (June 2026)
+    # breakout_sim
     "BreakoutConfig",
     "simulate_breakout",
+    # short_vol
+    "ShortVolConfig",
+    "ShortVolResult",
+    "evaluate_short_vol",
+    "cvar_loss",
+    "trade_sharpe",
+    "otm_rate_vs_delta",
+    "calibration_gap",
 ]

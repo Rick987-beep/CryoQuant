@@ -1,4 +1,11 @@
-"""Crypto Fear & Greed Index — alternative.me public API."""
+"""Crypto Fear & Greed Index — alternative.me public API.
+
+Public interface::
+
+    fetch_series(start, end, *, session) -> pd.DataFrame   # UTC daily index, column value (0–100)
+
+Persist via ``macro_store.write_series("fear_greed", series_id, df["value"])``.
+"""
 from __future__ import annotations
 
 import logging

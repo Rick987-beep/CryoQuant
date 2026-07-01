@@ -2,6 +2,15 @@
 
 Canonical public table: https://farside.co.uk/bitcoin-etf-flow-all-data/
 Optional fallback: Parse.bot Farside wrapper (PARSE_API_KEY) when Cloudflare blocks scrape.
+
+Public interface::
+
+    fetch_aggregate_flows(start, end, *, session) -> pd.DataFrame
+    fetch_ticker_flows(start, end, tickers, *, session) -> pd.DataFrame
+    fetch_all_ticker_flows(start, end, *, session) -> pd.DataFrame
+
+Frames include ``value`` (USD) and ``available_utc`` (ETF flow publication lag).
+Persist via ``macro_store.write_frame("farside", series_id, df)``.
 """
 from __future__ import annotations
 

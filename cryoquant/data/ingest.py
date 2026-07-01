@@ -2,7 +2,7 @@
 
 Reads a universe YAML manifest and dispatches OHLCV loads via ``loader`` and
 macro series via ``macro_store``.  Analysis folders supply ``universe.yaml``
-and a thin CLI wrapper (see ``analyses/trend_following/run_ingest.py``).
+and a thin CLI wrapper (see ``studies/trend_following/run_ingest.py``).
 
 Public interface::
 

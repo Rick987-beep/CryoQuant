@@ -1,4 +1,13 @@
-"""Coin Metrics Community API — BTC L1 metrics."""
+"""Coin Metrics Community API — on-chain asset metrics.
+
+Public interface::
+
+    chain_date_to_available_utc(chain_date) -> datetime
+    fetch_asset_metric(asset, metric, start, end, *, session) -> pd.DataFrame
+
+Frames include ``value``, ``available_utc``, ``chain_date``.
+Persist via ``macro_store.write_frame("coinmetrics", f"{asset}_{metric}", df)``.
+"""
 from __future__ import annotations
 
 import logging

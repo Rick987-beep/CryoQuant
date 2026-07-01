@@ -38,7 +38,7 @@ glossary.md               Definitions
 archive/                  Internal build history (phases, ADRs, module inventory)
 ```
 
-**Strict at seams, loose in the middle** — always use `Symbol` + `load_track` for data and `Signal` + `simulate` for backtest output; everything between is your study code in `analyses/` or optional framework helpers.
+**Strict at seams, loose in the middle** — always use `Symbol` + `load_track` for data and `Signal` + `simulate` for backtest output; everything between is your study code in `studies/` or optional framework helpers.
 
 ---
 

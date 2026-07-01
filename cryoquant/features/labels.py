@@ -1,7 +1,7 @@
-"""Forward-return and study labelers.
+"""Forward-return and distributional labelers.
 
 All labelers compute **forward-looking** targets and must never be used as model
-features — only as training targets (KICKOFF P-4, P-5).
+features — only as training targets.
 
 Conventions (daily bars):
   - ``horizon_bars=H`` uses prices over ``(t+1 .. t+H]``; last H rows are NaN.

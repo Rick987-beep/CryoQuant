@@ -1,7 +1,7 @@
 """Percentile-composite scoring for backtest leaderboards.
 
 Analysis-specific weights live in the analysis package (e.g.
-``analyses/quickwintrend/scoring_config.py``).  This module only provides
+``studies/quickwintrend/scoring_config.py``).  This module only provides
 the generic engine.
 
 Public interface::

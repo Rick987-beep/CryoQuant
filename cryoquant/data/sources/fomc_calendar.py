@@ -1,4 +1,15 @@
-"""FOMC rate-decision calendar — Fed published meeting schedule."""
+"""FOMC rate-decision calendar — Fed published meeting schedule.
+
+Public interface::
+
+    decision_available_utc(decision_date) -> datetime
+    fetch_fomc_decision_days(start, end, *, session) -> pd.DataFrame
+    expand_daily_flags(sparse, index) -> pd.Series
+    decision_dates_in_range(start, end) -> list[date]
+    build_fomc_calendar_features(index) -> pd.DataFrame
+
+Persist via ``macro_store.write_frame("fed_calendar", series_id, df)``.
+"""
 from __future__ import annotations
 
 import logging
@@ -6,6 +17,7 @@ import re
 from datetime import date, datetime, time, timezone
 from zoneinfo import ZoneInfo
 
+import numpy as np
 import pandas as pd
 import requests
 
@@ -109,6 +121,55 @@ def expand_daily_flags(sparse: pd.DataFrame, index: pd.DatetimeIndex) -> pd.Seri
         if mask.any():
             out.loc[index[mask][0]] = 1.0
     return out
+
+
+def decision_dates_in_range(start: date, end: date) -> list[date]:
+    """FOMC decision dates in [start, end] from the static published calendar."""
+    return sorted(d for d in _FOMC_DECISION_DATES if start <= d <= end)
+
+
+def build_fomc_calendar_features(index: pd.DatetimeIndex) -> pd.DataFrame:
+    """Calendar FOMC features (decision-day flags; no announcement-outcome lag)."""
+    if index.empty:
+        return pd.DataFrame(
+            columns=[
+                "is_fomc_decision_day",
+                "days_until_fomc",
+                "days_since_fomc",
+                "is_fomc_week",
+            ]
+        )
+
+    start_d = index.min().date()
+    end_d = index.max().date()
+    decision_dates = decision_dates_in_range(start_d, end_d)
+    decision_set = set(decision_dates)
+
+    bar_dates = pd.Series([ts.date() for ts in index], index=index)
+    is_decision = bar_dates.map(lambda d: 1.0 if d in decision_set else 0.0)
+
+    days_until: list[float] = []
+    days_since: list[float] = []
+    for d in bar_dates:
+        future = [x for x in decision_dates if x >= d]
+        past = [x for x in decision_dates if x <= d]
+        days_until.append(float((future[0] - d).days) if future else np.nan)
+        days_since.append(float((d - past[-1]).days) if past else np.nan)
+
+    decision_weeks = {d.isocalendar()[:2] for d in decision_dates}
+    is_week = bar_dates.map(
+        lambda d: 1.0 if d.isocalendar()[:2] in decision_weeks else 0.0
+    )
+
+    return pd.DataFrame(
+        {
+            "is_fomc_decision_day": is_decision.astype(float),
+            "days_until_fomc": days_until,
+            "days_since_fomc": days_since,
+            "is_fomc_week": is_week.astype(float),
+        },
+        index=index,
+    )
 
 
 def _resolve_decision_dates(

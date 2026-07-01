@@ -1,7 +1,8 @@
-"""Crypto-native feature builders (BTCpredict Phase 2).
+"""Crypto-native feature builders (sentiment, flows, network, cross-asset ratios).
 
-Implements FEATURE_CATALOG layers C (partial), E (flows), F (sentiment), G (network),
-and B cross-asset ratios (``build_study_cross_global``).
+Implements tier-2 builders for on-chain, institutional, and sentiment overlays.
+Global columns are replicated on every asset row in multi-asset panels; network metrics
+are typically anchored to a single reference asset (NaN on other rows).
 
 Global columns (fear/greed, ETF, cross ratios) are replicated on every asset row
 in ``panel_build.py``. Network metrics are BTC-only (NaN on ETH/SOL rows).
@@ -147,7 +148,7 @@ def align_like(index: pd.DatetimeIndex, series: pd.Series) -> pd.Series:
     return s.reindex(index)
 
 
-def build_study_cross_global(
+def build_crypto_cross_ratios(
     index: pd.DatetimeIndex,
     *,
     btc_close: pd.Series,

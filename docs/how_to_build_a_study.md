@@ -61,13 +61,13 @@ python -m cryoquant.cli catalog list
 ### 1b — One-off CSV or proprietary file (analysis-local)
 
 For a study-only file you will not reuse elsewhere, **do not** add a framework source module yet.
-Load in `analyses/<name>/` and optionally write to `macro_store` for caching:
+Load in `studies/<name>/` and optionally write to `macro_store` for caching:
 
 ```python
 import pandas as pd
 from cryoquant.data.macro_store import write_series, load_series
 
-raw = pd.read_csv("analyses/my_study/input/spreads.csv", parse_dates=["date"], index_col="date")
+raw = pd.read_csv("studies/my_study/input/spreads.csv", parse_dates=["date"], index_col="date")
 raw.index = raw.index.tz_localize("UTC")
 series = raw["spread_bps"].astype("float64")
 
@@ -103,7 +103,7 @@ Then `load_track(Symbol("yahoo", "HYG"), "1d", start, end)` works. No loader cha
 
 ### 1d — Add a new OHLCV source (framework change)
 
-Only when **two analyses** need the same venue, or the fetch/normalise logic is generic:
+Only when **two studies** need the same venue, or the fetch/normalise logic is generic:
 
 1. **Source module** — `cryoquant/data/sources/<name>.py` with `fetch_bars(symbol, tf, start, end) -> DataFrame`
    - UTC tz-aware bar-open index named `timestamp`
@@ -124,7 +124,7 @@ Only when **two analyses** need the same venue, or the fetch/normalise logic is 
 For parameter sweeps across a universe, use YAML + `ingest`:
 
 ```yaml
-# analyses/my_study/universe.yaml
+# studies/my_study/universe.yaml
 groups:
   crypto_hourly:
     tf: 1h
@@ -141,11 +141,46 @@ groups:
 from pathlib import Path
 from cryoquant.data.ingest import run_ingest
 
-result = run_ingest(Path("analyses/my_study/universe.yaml"))
+result = run_ingest(Path("studies/my_study/universe.yaml"))
 print(result.ok, result.failed)
 ```
 
-See `analyses/trend_following/run_ingest.py` for a thin CLI wrapper pattern.
+See `studies/trend_following/run_ingest.py` for a thin CLI wrapper pattern.
+
+### 1f — Crypto & alt-data connectors
+
+Eight framework source modules fetch crypto sentiment, on-chain, institutional, and vol-index data. They are **not** wired into generic `ingest_macro` (which only routes `fred` / `cboe`). Use `fetch_*` → `macro_store.write_series` / `write_frame` directly, or add a thin ingest script in your analysis folder (see §1e for the YAML + router pattern).
+
+| Module | `fetch_*` | `macro_store` key | `write_*` | Lag |
+|--------|-----------|-------------------|-----------|-----|
+| `fear_greed` | `fetch_series` | `fear_greed / {series_id}` | `write_series` | same-day |
+| `defillama` | `fetch_stablecoin_supply` | `defillama / {series_id}` | `write_series` | same-day |
+| `farside_etf` | `fetch_aggregate_flows`, `fetch_ticker_flows` | `farside / etf_aggregate`, `etf_{ticker}` | `write_frame` | `available_utc` |
+| `strategy_treasury` | `fetch_mstr_purchases`, `fetch_mstr_holdings` | `strategy / mstr_purchases`, `mstr_holdings` | `write_frame` | `available_utc` |
+| `coinmetrics` | `fetch_asset_metric` | `coinmetrics / {asset}_{metric}` | `write_frame` | chain-date + 1d |
+| `deribit_indices` | `fetch_dvol` | `deribit / {underlying}_DVOL` | `write_series` | same-calendar |
+| `fomc_calendar` | `fetch_fomc_decision_days` | `fed_calendar / fomc_decision_days` | `write_frame` | ~2pm ET announcement |
+| `xoomar_oi` | `fetch_open_interest_daily` | `xoomar / {ticker}_open_interest` | `write_series` | from 2021-01 |
+
+```python
+from datetime import date, datetime, timezone
+
+from cryoquant.data import macro_store
+from cryoquant.data.sources import fear_greed
+
+start = datetime(2020, 1, 1, tzinfo=timezone.utc)
+end = datetime.now(timezone.utc)
+
+df = fear_greed.fetch_series(date(2018, 1, 1), end.date())
+macro_store.write_series("fear_greed", "crypto_fear_greed", df["value"], force=True)
+
+# Later: load for feature alignment
+loaded = macro_store.load_series("fear_greed", "crypto_fear_greed", start, end)
+```
+
+For event frames with publication lag (ETF flows, on-chain), align with `align_by_available_utc` from `cryoquant.features.align` after loading via `macro_store.load_frame`.
+
+Tests: `tests/test_sources_crypto.py`. Check each source module's docstring for API limits and history constraints.
 
 ---
 
@@ -275,7 +310,7 @@ dsr = deflated_sharpe(
     n_trials=10,   # how many variants you tried
     n_obs=len(result.trades),
 )
-render_spot_result(result, "analyses/my_study/reports/run_001.html")
+render_spot_result(result, "studies/my_study/reports/run_001.html")
 ```
 
 Options follow-through (Deribit chains): [how_to_use.md §11](how_to_use.md#11-options-backtesting).
@@ -284,7 +319,7 @@ Options follow-through (Deribit chains): [how_to_use.md §11](how_to_use.md#11-o
 
 ## 5b. Publish artifacts
 
-After backtesting, write human- and machine-readable outputs under `analyses/<name>/reports/`.
+After backtesting, write human- and machine-readable outputs under `studies/<name>/reports/`.
 See [how_to_report.md](how_to_report.md) for the full format menu.
 
 **Path A — minimum:**
@@ -292,7 +327,7 @@ See [how_to_report.md](how_to_report.md) for the full format menu.
 ```python
 from cryoquant.backtest.reports import render_spot_result
 
-render_spot_result(result, "analyses/my_study/reports/run_001.html")
+render_spot_result(result, "studies/my_study/reports/run_001.html")
 ```
 
 **Path B — sweep bundle:**
@@ -301,8 +336,8 @@ render_spot_result(result, "analyses/my_study/reports/run_001.html")
 from cryoquant.backtest.bundle import write_bundle
 from cryoquant.backtest.reports import render_sweep_leaderboard
 
-write_bundle("analyses/my_study/bundles/main", bundle)
-render_sweep_leaderboard(bundle, "analyses/my_study/bundles/main/report.html")
+write_bundle("studies/my_study/bundles/main", bundle)
+render_sweep_leaderboard(bundle, "studies/my_study/bundles/main/report.html")
 ```
 
 **Multi-bundle index (optional):**
@@ -310,7 +345,7 @@ render_sweep_leaderboard(bundle, "analyses/my_study/bundles/main/report.html")
 ```python
 from cryoquant.reporting import publish_study
 
-publish_study("analyses/my_study", manifest=manifest)  # or rely on reporting: in config.yaml
+publish_study("studies/my_study", manifest=manifest)  # or rely on reporting: in config.yaml
 ```
 
 ---
@@ -318,7 +353,7 @@ publish_study("analyses/my_study", manifest=manifest)  # or rely on reporting: i
 ## 6. Where code lives
 
 ```text
-analyses/<name>/
+studies/<name>/
   universe.yaml          # Path B ingest manifest (optional)
   run_ingest.py          # thin CLI wrapper (optional)
   backtest.py            # entry point for this study
@@ -331,10 +366,10 @@ cryoquant/               # promote here when reusable
   reporting/             # manifest, index HTML, phase summaries, charts
   data/sources/          # new venue fetchers
   features/builders.py   # shared feature sets
-  signals/               # signal factories used by multiple analyses
+  signals/               # signal factories used by multiple studies
 ```
 
-**Promote rule:** move code into `cryoquant/` when a second analysis needs it, or when it has zero domain semantics (alignment, metrics, ingest helpers). Keep hypothesis-specific economics in `analyses/`.
+**Promote rule:** move code into `cryoquant/` when a second analysis needs it, or when it has zero domain semantics (alignment, metrics, ingest helpers). Keep hypothesis-specific economics in `studies/`.
 
 ---
 
@@ -347,7 +382,7 @@ cryoquant/               # promote here when reusable
 [ ] Primitives or a few inline columns on the primary frame
 [ ] BoolSignal or ScoreSignal
 [ ] simulate() + deflated_sharpe
-[ ] HTML report under analyses/<name>/reports/ (see how_to_report.md)
+[ ] HTML report under studies/<name>/reports/ (see how_to_report.md)
 ```
 
 ### Path B — sweep study
@@ -388,7 +423,7 @@ For CSV export or downstream consumers:
 ```python
 from cryoquant.signals.publishers.csv_emitter import emit_history
 
-emit_history(signal, bars, out_path="analyses/my_study/signal_history.parquet")
+emit_history(signal, bars, out_path="studies/my_study/signal_history.parquet")
 ```
 
 CryoTrader live wiring is deferred; see [how_to_use.md §12](how_to_use.md#12-publishing-a-signal).

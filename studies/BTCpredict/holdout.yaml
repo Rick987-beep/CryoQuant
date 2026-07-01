@@ -1,0 +1,101 @@
+# Phase 7 hold-out register — mirrors SPEC §13.0
+version: 1
+review_status: signed_off
+review_date: "2026-06-30"
+build_status: complete
+build_date: "2026-06-30"
+upstream: SPEC.md §13, backtest.yaml, training.yaml, validation.yaml, OPTIONS_SURFACE_PROXY_PROPOSAL.md §5
+config_gate: phase6_complete in config.yaml
+
+# --- Locked decisions (2026-06-30) ---
+
+inference:
+  phase: 7A
+  train_slice: "timestamp < splits.holdout_start"
+  predict_slice: "timestamp >= splits.holdout_start"
+  models: 48  # same run matrix as training.yaml total_runs
+  hpo_enabled: false
+  hyperparams_source: training.yaml
+  no_pickles_from_phase4: true  # P4.5-D1 — refit once per run_id on full dev
+  artifact: data/holdout_predictions.parquet
+  rationale: >
+    oos_predictions.parquet is walk-forward dev only (max ts < holdout_start).
+    Phase 7 requires one sacred hold-out inference pass before chain backtest.
+
+chain_eval:
+  phase: 7B
+  asset: BTC
+  exclude_chain: [ETH]
+  effective_start: "2025-04-11"  # max(holdout_start, chain_first_date)
+  effective_end: present
+  signal_frozen: data/phase6_best_config.json
+  calibration_slice: "timestamp >= holdout_start AND timestamp < effective_start"
+  chain_slice: "timestamp >= effective_start"
+  default_structure: strangle
+  structure_note: >
+    credit_spread included in report-all grid; strangle is default primary
+    (thin bid/ask often nets zero credit on spreads in smoke tests).
+
+sweep:
+  mode: report_all
+  selection_on_holdout: false
+  frozen_signal_axes: true  # horizon, vrp_threshold, tilt, min_physical_edge from phase6
+  preregistered_primary:
+    target_delta: 0.15
+    dte: 7
+    structure: strangle
+    exit_rule: hold_to_expiry
+  axes:
+    target_delta: [0.10, 0.15, 0.20]
+    dte: [1, 2, 7, 14, 21, 30]
+    structure: [credit_spread, strangle]
+    exit_rule: [hold_to_expiry]
+  report: distribution_summary  # no champion picked on hold-out
+
+baselines:
+  naive_seller:
+    schedule: every_bar_with_valid_chain
+    structure: strangle
+    target_delta: 0.15
+    dte: 7
+    exit_rule: hold_to_expiry
+    note: Unconditional short-vol seller; no model gates
+  naive_vrp_gate:
+    fire_when: "{asset}_iv_minus_rv > 0"
+    structure: strangle
+    target_delta: 0.15
+    dte: 7
+    note: Informational comparison; mirrors Phase 6 naive baseline on chains
+
+gates:
+  tier_primary:
+    G2: calibration_gap_gt_0_or_ece_lt_0.05
+  tier_secondary:
+    - G1  # chain_deflated_sharpe_gt_naive_seller
+    - G3  # chain_cvar_gte_neg_max_cvar_loss_pct
+    - G4  # chain_expectancy_gt_0_after_bid_ask
+  failure_is_valid_completion: true
+  study_complete_requires: honest_one_shot_run_and_RESULTS_md
+
+one_shot:
+  guard_file: data/phase7_holdout_touched.json
+  allow_force: false  # principal approval only
+  dsr_trials_source: data/trial_log.jsonl  # cumulative including Phase 6 sweep
+
+artifacts:
+  holdout_predictions: data/holdout_predictions.parquet
+  holdout_report: data/phase7_holdout_report.json
+  qa_report: data/phase7_qa_report.json
+  one_shot_guard: data/phase7_holdout_touched.json
+  results_md: reports/RESULTS.md
+  manifest: reports/manifest.json
+  bundle: reports/bundles/holdout/
+
+completion:
+  requires_phase6_complete: true
+  requires_inference_before_chain: true
+  errors_on:
+    - holdout_leak_in_fit
+    - holdout_rows_missing_after_inference
+    - second_run_without_force
+    - chain_eval_before_effective_start

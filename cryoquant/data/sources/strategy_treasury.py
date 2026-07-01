@@ -1,6 +1,14 @@
 """Strategy Inc (MSTR) BTC treasury — official purchase disclosures.
 
 Source: https://www.strategy.com/purchases (__NEXT_DATA__ JSON).
+
+Public interface::
+
+    fetch_mstr_purchases(start, end, *, session) -> pd.DataFrame
+    fetch_mstr_holdings(start, end, *, session) -> pd.DataFrame
+
+Frames include ``available_utc`` (event publication lag).
+Persist via ``macro_store.write_frame("strategy", series_id, df)``.
 """
 from __future__ import annotations
 

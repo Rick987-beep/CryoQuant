@@ -24,7 +24,7 @@ cryoquant/
   backtest/        spot_pnl, breakout_sim, option_lookup, metrics, trades,
                    scoring, bundle, sweep_collector, robustness, reports
   cli/             catalog + models (live); backtest + signals (compat stubs, D22)
-analyses/          per-study orchestration; imports framework, never the reverse
+studies/          per-study orchestration; imports framework, never the reverse
 docs/              planning, specs, decisions, this file
 tests/             33 test files; 478+ passing (offline)
 ```
@@ -40,7 +40,7 @@ data → features → labels → models → signals → backtest
 ```
 
 Framework code lives exclusively in `cryoquant/` and `cryocore/`.  Analysis
-folders (`analyses/`) are research workspaces that consume the framework.
+folders (`studies/`) are research workspaces that consume the framework.
 
 ---
 
@@ -234,6 +234,6 @@ All items below are **Phase 7+ backlog** — not required for framework complete
 
 | Analysis | Location | Status | Framework impact |
 |---|---|---|---|
-| Hedged BTC options | `analyses/hedged_btc/` | Active | Used `option_lookup`, `robustness` |
-| Trend following | `analyses/trend_following/` | Phase 1+2 complete; Phase 3A next | Built multi-asset data layer, 11 trend primitives, 3 feature builders |
-| QuickWinTrend | `analyses/quickwintrend/` | v2 sweep complete | Built sweep backtest infrastructure, `breakout_sim` |
+| Hedged BTC options | `studies/hedged_btc/` | Active | Used `option_lookup`, `robustness` |
+| Trend following | `studies/trend_following/` | Phase 1+2 complete; Phase 3A next | Built multi-asset data layer, 11 trend primitives, 3 feature builders |
+| QuickWinTrend | `studies/quickwintrend/` | v2 sweep complete | Built sweep backtest infrastructure, `breakout_sim` |

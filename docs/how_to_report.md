@@ -4,7 +4,7 @@
 
 This is a **guideline**, not a runtime requirement. Pick any subset of formats. For the study pipeline, see [how_to_build_a_study.md](how_to_build_a_study.md).
 
-**Reference implementation:** [`analyses/cdx/`](../analyses/cdx/) — multi-phase study with manifest, index HTML, bundles, and narrative reports.
+**Reference implementation:** [`studies/cdx/`](../studies/cdx/) — multi-phase study with manifest, index HTML, bundles, and narrative reports.
 
 ---
 
@@ -21,7 +21,7 @@ This is a **guideline**, not a runtime requirement. Pick any subset of formats. 
 ## Recommended layout
 
 ```text
-analyses/<study>/
+studies/<study>/
 ├── config.yaml
 ├── data/                          # gitignored — derived parquets
 ├── bundles/<name>/                  # RunBundle dirs (gitignored)
@@ -102,8 +102,8 @@ from cryoquant.backtest.bundle import RunBundle, write_bundle
 from cryoquant.backtest.reports import render_sweep_leaderboard
 
 bundle = RunBundle(meta={"study": "demo", "n_runs": 10}, leaderboard=lb, trades=trades)
-write_bundle("analyses/my_study/bundles/main", bundle)
-render_sweep_leaderboard(bundle, "analyses/my_study/bundles/main/report.html")
+write_bundle("studies/my_study/bundles/main", bundle)
+render_sweep_leaderboard(bundle, "studies/my_study/bundles/main/report.html")
 ```
 
 Recommended `meta.json` keys: `study`, `n_runs`, `scoring`, plus optional `sample`, `data_sources`, `warnings`, `git_commit`, `config_hash`.
@@ -114,7 +114,7 @@ Recommended `meta.json` keys: `study`, `n_runs`, `scoring`, plus optional `sampl
 from cryoquant.reporting import write_phase_summary
 
 write_phase_summary(
-    "analyses/my_study/reports/phase_1_ingest.json",
+    "studies/my_study/reports/phase_1_ingest.json",
     phase_id="ingest",
     metrics={"n_bars": 2520},
     artifacts={"panel": "data/panel.parquet"},
@@ -133,8 +133,8 @@ from cryoquant.reporting import (
     render_index_from_manifest,
 )
 
-reports_root = Path("analyses/my_study/reports")
-bundle_dir = Path("analyses/my_study/bundles/main")
+reports_root = Path("studies/my_study/reports")
+bundle_dir = Path("studies/my_study/bundles/main")
 
 manifest = build_manifest(
     study="my_study",
@@ -156,7 +156,7 @@ Or use the orchestrator when `reporting:` is in config:
 ```python
 from cryoquant.reporting import publish_study
 
-publish_study("analyses/my_study")  # reads config.yaml, writes manifest + index
+publish_study("studies/my_study")  # reads config.yaml, writes manifest + index
 ```
 
 ### Inline SVG charts (tier 3)
@@ -174,8 +174,8 @@ Zero extra dependencies — suitable for self-contained HTML reports.
 ```python
 from cryoquant.reporting import export_notebook, render_tearsheet
 
-export_notebook("analyses/my_study/exploration.ipynb", "analyses/my_study/reports/notebooks/exploration.html")
-render_tearsheet(daily_returns, "analyses/my_study/reports/tearsheet.html", benchmark="SPY")
+export_notebook("studies/my_study/exploration.ipynb", "studies/my_study/reports/notebooks/exploration.html")
+render_tearsheet(daily_returns, "studies/my_study/reports/tearsheet.html", benchmark="SPY")
 ```
 
 ---
@@ -252,7 +252,7 @@ flowchart LR
 ## Git policy
 
 - **Commit:** `RESULTS.md`, study docs, `config.yaml`, source notebooks (cleared outputs).
-- **Gitignore:** `analyses/*/reports/`, `analyses/*/data/`, `bundles/` (see root `.gitignore`).
+- **Gitignore:** `studies/*/reports/`, `studies/*/data/`, `bundles/` (see root `.gitignore`).
 
 ---
 
@@ -262,4 +262,4 @@ flowchart LR
 |-----|------|
 | [how_to_build_a_study.md](how_to_build_a_study.md) | End-to-end study pipeline |
 | [glossary.md](glossary.md) | `RunBundle`, `StudyManifest`, tier IDs |
-| [../analyses/cdx/RESULTS.md](../analyses/cdx/RESULTS.md) | Full multi-phase reference |
+| [../studies/cdx/RESULTS.md](../studies/cdx/RESULTS.md) | Full multi-phase reference |

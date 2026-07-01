@@ -1,0 +1,78 @@
+# Phase 5 validation register — mirrors SPEC §11.0
+version: 1
+review_status: signed_off
+review_date: "2026-06-29"
+build_status: complete
+build_date: "2026-06-29"
+upstream: SPEC.md §11, training.yaml, phase4_training_manifest.json
+config_gate: phase4_5_complete in config.yaml
+
+permutation:
+  scope: all_runs  # 48 runs from training.yaml
+  n_permutations: 20
+  seed: 42
+  primary_metrics:
+    directional: auc
+    log_return_bench: mae
+    realized_vol: qlike  # lower is better; feature-permutation null
+    distributional: pinball_loss
+  p_value_method: fraction_better_than_null
+  vol_gate_p_max: 0.05  # realized_vol runs must beat perm null at this level
+
+directional:
+  dev_null_status: confirmed_null
+  null_blocks_phase5: false
+  calibration_from_oos: true
+  note: >
+    No dev OOS directional edge (AUC ≈ 0.50). Phase 5 confirms via permutation;
+    null result is a pass — not a blocker for Phase 6 vol/calibration work.
+
+exceedance_calibration:
+  assets: [BTC, ETH]
+  deltas: [0.10, 0.15, 0.20]
+  sides: [call, put]
+  cdf_method: piecewise_linear_quantile
+  quantile_levels: [0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95]
+  strike_source: causal_forward_return_quantile  # same as label_build
+
+vrp:
+  assets: [BTC, ETH]
+  metrics: [spearman, sign_hit_rate, mae]
+  signal: predicted_fwd_rv_vs_dvol  # dvol - y_pred from realized_vol OOS
+
+leakage_scan:
+  corr_threshold: 0.90
+  name_patterns: ["fwd_", "target_", "_lead", "_future", "label_"]
+  sample_labels:
+    - up_win_volscaled_h1
+    - log_return_h5
+    - exceedance_call_d0p15_h5
+
+embargo_sensitivity:
+  enabled: true
+  run_id: smoke_btc_up_h1
+  embargo_values: [0, 7, 21]
+
+cpcv:
+  enabled: false
+  stub_only: true
+  ticket: "Phase 5 — defer full CPCV/PBO to post-Phase 6"
+
+hpo:
+  enabled: false
+
+artifacts:
+  validation_report: data/validation_report.json
+  qa_report: data/phase5_qa_report.json
+  human_report: reports/phase5_validation_report.txt
+
+completion:
+  requires_phase4_manifest_v2: true
+  errors_on:
+    - leakage_critical
+    - holdout_leak_in_oos
+    - embargo_not_wired
+  vol_permutation_required: true
+  exceedance_overlay_required: true
+  directional_null_ok: true
+  phase7_upstream: holdout.yaml  # 7A inference + chain report-all; G2 primary

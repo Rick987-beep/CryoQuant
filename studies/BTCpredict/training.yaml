@@ -1,0 +1,163 @@
+# Machine-readable Phase 4 training register — mirrors SPEC §10.0
+version: 1
+review_status: signed_off
+review_date: "2026-06-29"
+upstream: SPEC.md §10.0, KICKOFF D-1/D-7, features.yaml phase4_defaults
+build_status: complete
+build_date: "2026-06-29"
+config_gate: "phase3_complete in config.yaml"
+
+# Slice: timestamp < splits.holdout_start (2024-06-01). Hold-out inference in Phase 7A (refit 48 models once).
+
+holdout_inference:
+  phase: 7A
+  train_slice: "timestamp < splits.holdout_start"
+  predict_slice: "timestamp >= splits.holdout_start"
+  total_runs: 48
+  hpo_enabled: false
+  artifact: data/holdout_predictions.parquet
+  register: holdout.yaml
+
+horizons:
+  - id: T+1d
+    horizon_bars: 1
+    label_suffix: h1
+  - id: T+5d
+    horizon_bars: 5
+    label_suffix: h5
+  - id: T+10-21d
+    horizon_bars: 14
+    label_suffix: h14
+
+# --- Locked decisions (2026-06-29) ---
+
+directional:
+  # Vol-scaled labels only (use_vol_scaled_threshold: true in config).
+  # Suffix _h{H} appended at train time from horizon label_suffix.
+  BTC:
+    labels: [up_win_volscaled, down_win_volscaled, magnitude_win_volscaled]
+    rationale: "Full side + magnitude for primary book asset and strangle tilt."
+  ETH:
+    labels: [up_win_volscaled, down_win_volscaled]
+    rationale: "Options book — side tilt only; magnitude deferred (derivable from up∨down)."
+  SOL:
+    labels: [up_win_volscaled, down_win_volscaled]
+    rationale: "Directional-only asset; no options labels; shorter history."
+
+exceedance:
+  approach: quantile_derived
+  train_classifiers: false
+  rationale: >
+    Train QuantileModel on log_return only. Derive P(ITM) at δ-strikes from predicted
+    quantiles in Phase 5. Family 4–5 exceedance_* labels in labels.parquet are calibration
+    targets for evaluation — not separate Phase 4 classifiers.
+
+vrp:
+  approach: derived_from_vol_head
+  train_regressor: false
+  inference: "iv_minus_rv feature and/or dvol - predicted_fwd_rv from realized_vol head"
+  rationale: >
+    VRP is compositional (IV − realized). Family 6 vrp_realized labels used for Phase 5
+    evaluation, not a standalone training target.
+
+sol:
+  mode: separate_per_asset
+  options_labels: false
+  feature_scope: "global/core cross-asset + macro + crypto globals + sol_* trend core"
+
+goal2_dev_features:
+  note: "Chain columns NaN in dev by design (era_gates.chain_first_date)."
+  required_core:
+    - "{a}_dvol_30d"
+    - "{a}_iv_minus_rv"
+    - "{a}_dvol_rank_252"
+    - "{a}_rv_24"
+    - "{a}_rv_rank"
+    - "{a}_vol_expansion"
+  assets: [BTC, ETH]
+
+feature_policy:
+  start_tag: core
+  max_columns_key: feature_budget_max
+  correlation_drop_threshold: 0.95
+  scaler: standard
+  winsor_percentiles: [1, 99]
+  missing_values: drop_row
+  extended_ablation: false
+  rationale: >
+    LightGBM handles ~137 columns; pruning is for variance/overfitting and correlated
+    redundancy (P-10), not because trees break. Start core (~62), never drop forced_include,
+    correlation-prune, cap at feature_budget_max (100).
+  never_drop:
+    - etf_flow_1d_usd
+    - etf_flow_5d_usd
+    - etf_flow_z21
+    - mstr_btc_acq
+    - mstr_holdings_btc
+  sparse_features:
+    etf_flow:
+      dev_days_approx: 102
+      policy: keep
+      note: "Sparse in early dev folds; important post-2024 and hold-out — do not drop."
+
+heads:
+  directional:
+    model: TabularModel
+    calibration: isotonic
+    assets_labels: directional  # see directional.* above
+    horizons: all
+    run_count: 21
+
+  log_return_bench:
+    model: TabularRegressor
+    target: log_return
+    assets: [BTC, ETH, SOL]
+    horizons: all
+    run_count: 9
+
+  realized_vol:
+    model: TabularRegressor
+    target: fwd_rv
+    baseline: har_rv
+    assets: [BTC, ETH, SOL]
+    horizons: all
+    run_count: 9
+
+  quantile:
+    model: QuantileModel
+    target: log_return
+    quantiles: [0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95]
+    assets: [BTC, ETH, SOL]
+    horizons: all
+    exceedance_eval_assets: [BTC, ETH]
+    run_count: 9
+
+total_runs: 48
+
+train_order:
+  - id: smoke_btc_up_h1
+    head: directional
+    asset: BTC
+    horizon_id: T+1d
+    label: up_win_volscaled
+    purpose: "P4-L01 live smoke + pipeline validation"
+  - id: directional_all
+    head: directional
+    note: "Remaining 20 directional runs (BTC full, ETH/SOL up+down)"
+  - id: log_return_all
+    head: log_return_bench
+  - id: realized_vol_all
+    head: realized_vol
+  - id: quantile_all
+    head: quantile
+
+hpo:
+  enabled: false
+  note: "Fixed LGBM hyperparams in config.yaml phase4.lgbm_*; HPO deferred to Phase 5+"
+
+artifacts:
+  oos_predictions: data/oos_predictions.parquet
+  training_manifest: data/phase4_training_manifest.json  # v2: fold_ledger + repro bundle
+  training_report: reports/phase4_training_report.txt
+  trial_log: data/trial_log.jsonl
+  qa_report: data/phase4_qa_report.json

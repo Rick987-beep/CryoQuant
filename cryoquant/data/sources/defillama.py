@@ -1,4 +1,11 @@
-"""DefiLlama free API — stablecoin supply (not Pro ETF/DAT endpoints)."""
+"""DefiLlama free API — stablecoin supply (not Pro ETF/DAT endpoints).
+
+Public interface::
+
+    fetch_stablecoin_supply(start, end, *, session) -> pd.DataFrame   # UTC daily, column value (USD)
+
+Persist via ``macro_store.write_series("defillama", series_id, df["value"])``.
+"""
 from __future__ import annotations
 
 import logging

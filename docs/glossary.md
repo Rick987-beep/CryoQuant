@@ -110,23 +110,23 @@ Adapts a `Signal` to a specific consumer's interface.
 - `csv_emitter` — writes parquet for notebooks / dashboards.
 - `pine_emitter` — emits Pine v5 snippet (only from `BoolSignal`/`StateSignal`).
 
-## Analysis
+## Study
 
 A named, self-contained investigation that produces a concrete answer or artefact. Lives under
-`analyses/<name>/` and contains:
+`studies/<name>/` and contains:
 
 - A backtest script (e.g. `backtest.py`) — the entry point
 - An exploration notebook (e.g. `exploration.ipynb`) — interactive parameter sweeps
 - A `reports/` subfolder — generated HTML, JSON manifests, phase summaries (gitignored)
 - Optional `bundles/` — RunBundle sweep output (gitignored)
 
-The `analyses/` tree is the "use" layer of CryoQuant; the `cryoquant/` package is the
+The `studies/` tree is the "use" layer of CryoQuant; the `cryoquant/` package is the
 "core" library. Keep them separate. Framework code belongs in `cryoquant/`; one-off exploration
-belong in `analyses/`.
+belong in `studies/`.
 
-Current analyses:
-- `analyses/cdx/` — CDX.NA.IG credit study (reference reporting implementation)
-- `analyses/ema_cross_7_21/` — EMA 7/21 daily crossover on BTCUSDT
+Current studies:
+- `studies/cdx/` — CDX.NA.IG credit study (reference reporting implementation)
+- `studies/ema_cross_7_21/` — EMA 7/21 daily crossover on BTCUSDT
 
 ## RunBundle
 
@@ -136,7 +136,7 @@ Standard layout: `meta.json`, `leaderboard.{parquet,csv}`, `trades.parquet`,
 
 ## StudyManifest
 
-Study-level `manifest.json` under `analyses/<name>/reports/` — indexes bundles, phase
+Study-level `manifest.json` under `studies/<name>/reports/` — indexes bundles, phase
 summaries, highlights, and links to index HTML. Built with `cryoquant.reporting.build_manifest`.
 
 ## Report tier

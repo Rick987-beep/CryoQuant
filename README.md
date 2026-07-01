@@ -2,7 +2,7 @@
 
 **A local Python library for systematic quant research:** load market data, build features, train models, emit typed signals, and backtest — with reproducible parquet storage and no mandatory cloud stack.
 
-CryoQuant is a **library, not a pipeline runner**. You import it from scripts, notebooks, or your own `analyses/` folders. The framework is strict at the seams (symbols, bar schemas, signal contracts, trade logs) and loose in the middle (pandas joins, optional feature builders, analysis-local glue).
+CryoQuant is a **library, not a pipeline runner**. You import it from scripts, notebooks, or your own `studies/` folders. The framework is strict at the seams (symbols, bar schemas, signal contracts, trade logs) and loose in the middle (pandas joins, optional feature builders, analysis-local glue).
 
 ```text
 data → features → labels → models → signals → backtest
@@ -92,7 +92,7 @@ flowchart LR
 | [`cryocore`](cryocore/) | Shared types — `Symbol`, `Instrument`, calendars, UTC time helpers, cross-repo Pydantic schemas |
 | [`cryoquant`](cryoquant/) | Pipeline — `data`, `features`, `models`, `signals`, `backtest`, `reporting`, `cli` |
 
-Domain-specific studies (CDX credit, custom fund specs, etc.) live under [`analyses/`](analyses/) and are **not** part of the core library API.
+Domain-specific studies (CDX credit, custom fund specs, etc.) live under [`studies/`](studies/) and are **not** part of the core library API.
 
 ---
 
@@ -103,7 +103,7 @@ Not every task needs all six layers. Pick the workflow that matches your goal:
 | Path | When to use | Example | Key APIs |
 |---|---|---|---|
 | **A — Quick** | 2–5 series, rule indicator | [`scripts/quick_indicator.py`](scripts/quick_indicator.py) | `load_track`, `align_series`, primitives, `BoolSignal`, `simulate` |
-| **B — Study** | Many symbols, parameter sweeps | `analyses/*/run_sweep.py` pattern | `ingest`, `breakout_sim`, `bundle`, `sweep_collector` |
+| **B — Study** | Many symbols, parameter sweeps | `studies/*/run_sweep.py` pattern | `ingest`, `breakout_sim`, `bundle`, `sweep_collector` |
 | **C — ML** | 10–20+ heterogeneous tracks | [`scripts/ml_multi_source.py`](scripts/ml_multi_source.py) | `DataPanel`, builders, `walk_forward_fit`, `ProbSignal` |
 
 Full decision guide: [docs/how_to_use.md §2](docs/how_to_use.md#2-choose-your-path).
@@ -193,7 +193,7 @@ from cryoquant.backtest.spot_pnl import simulate
 
 ### Analysis folders
 
-For hypothesis-specific work, create `analyses/<your_study>/` with its own scripts, configs, and `reports/` output. Promote reusable code into `cryoquant/` when a second analysis needs the same pattern.
+For hypothesis-specific work, create `studies/<your_study>/` with its own scripts, configs, and `reports/` output. Promote reusable code into `cryoquant/` when a second study needs the same pattern.
 
 ---
 
@@ -273,7 +273,7 @@ CryoQuant/
 │   ├── backtest/       # simulate, options, reports, sweep infra
 │   └── cli/            # catalog / models commands
 ├── scripts/            # Runnable end-to-end examples
-├── analyses/           # Domain-specific studies (not core API)
+├── studies/           # Domain-specific studies (not core API)
 ├── docs/               # User guides (see docs/README.md)
 ├── tests/              # Offline test suite
 ├── notebooks/          # Exploratory work
@@ -332,7 +332,7 @@ CryoQuant grew out of IndicatorBench / pineforge indicator work and `long_tradab
 1. Keep public functions typed and covered by tests for behaviour changes.
 2. Prefer deterministic feature and model IDs.
 3. Preserve UTC / closed-bar assumptions — no lookahead in feature builders.
-4. Put reusable framework code in `cryoquant/`; keep hypothesis-specific economics in `analyses/`.
+4. Put reusable framework code in `cryoquant/`; keep hypothesis-specific economics in `studies/`.
 5. Do not commit secrets — use `.env` or `config_local.py`.
 
 Planning docs and ADRs: [docs/archive/](docs/archive/).

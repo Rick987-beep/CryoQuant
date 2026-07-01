@@ -16,6 +16,7 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import Ridge
 
 
 class RuleModel:
@@ -108,3 +109,89 @@ def make_vol_burst() -> RuleModel:
 def make_bear_burst() -> RuleModel:
     """4h down-trend + 1h bounce (puts-biased)."""
     return RuleModel(condition=_bear_burst_cond, name="bear_burst")
+
+
+# ---------------------------------------------------------------------------
+# Reference predictors for walk-forward baselines
+# ---------------------------------------------------------------------------
+
+
+class NaiveRandomWalk:
+    """Predict zero log-return (random walk in log space)."""
+
+    name = "naive_random_walk"
+
+    @property
+    def model_id(self) -> str:
+        return self.name
+
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
+        return None
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        return np.zeros(len(X), dtype=float)
+
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        return np.full(len(X), 0.5, dtype=float)
+
+
+class RollingMeanReturn:
+    """Predict constant = mean training label (momentum-agnostic baseline)."""
+
+    name = "rolling_mean_return"
+
+    def __init__(self) -> None:
+        self._mean: float = 0.0
+
+    @property
+    def model_id(self) -> str:
+        return self.name
+
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
+        self._mean = float(np.nanmean(y))
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        return np.full(len(X), self._mean, dtype=float)
+
+
+class RidgePredictor:
+    """Ridge regression on numeric features (train-only scaling expected upstream)."""
+
+    name = "ridge"
+
+    def __init__(self, alpha: float = 1.0, random_state: int = 42) -> None:
+        self._model = Ridge(alpha=alpha, random_state=random_state)
+        self._feature_names: list[str] = []
+
+    @property
+    def model_id(self) -> str:
+        return self.name
+
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
+        self._feature_names = list(X.columns)
+        self._model.fit(X, y)
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        if self._feature_names:
+            X = X[self._feature_names]
+        return np.asarray(self._model.predict(X), dtype=float)
+
+
+class NaiveDirectional:
+    """Predict training-set positive rate for binary directional labels."""
+
+    name = "naive_directional"
+
+    def __init__(self) -> None:
+        self._rate: float = 0.5
+
+    @property
+    def model_id(self) -> str:
+        return self.name
+
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
+        yb = np.asarray(y, dtype=float)
+        self._rate = float(np.nanmean(yb)) if len(yb) else 0.5
+
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        return np.full(len(X), self._rate, dtype=float)

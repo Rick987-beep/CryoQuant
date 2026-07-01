@@ -1,4 +1,12 @@
-"""Deribit volatility index (DVOL) — public REST API."""
+"""Deribit volatility index (DVOL) — public REST API.
+
+Public interface::
+
+    fetch_dvol(underlying, start, end, *, session, resolution) -> pd.DataFrame
+
+Returns UTC daily index and column ``dvol`` (annualised IV, %).
+Persist via ``macro_store.write_series("deribit", f"{underlying}_DVOL", df["dvol"])``.
+"""
 from __future__ import annotations
 
 import logging

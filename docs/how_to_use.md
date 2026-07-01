@@ -60,7 +60,7 @@ Not every task needs the full six-layer pipeline. Pick the path that matches you
 | Path | When to use | Example script | Key modules |
 |---|---|---|---|
 | **A — Quick** | 2–5 series, rule-based indicator | `scripts/quick_indicator.py` | `load_track`, primitives, `align_series`, `BoolSignal`, `simulate` |
-| **B — Study** | Many symbols, parameter sweeps | `analyses/*/run_sweep.py` pattern | `ingest`, `breakout_sim`, `sweep_collector`, `bundle` |
+| **B — Study** | Many symbols, parameter sweeps | `studies/*/run_sweep.py` pattern | `ingest`, `breakout_sim`, `sweep_collector`, `bundle` |
 | **C — ML** | 10–20+ tracks, ProbSignal | `scripts/ml_multi_source.py` | `DataPanel`, builders, `walk_forward_fit`, `TabularModel` |
 
 ```mermaid
@@ -71,7 +71,7 @@ flowchart TD
   q1 -->|Many symbols, grids| pathB[Path B: ingest + sweep]
 ```
 
-**Promote to framework** (`cryoquant/`) when two analyses need the same pattern, or the code has no domain-specific semantics (alignment, metrics, sweep I/O). Keep hypothesis-specific logic in `analyses/<name>/`.
+**Promote to framework** (`cryoquant/`) when two studies need the same pattern, or the code has no domain-specific semantics (alignment, metrics, sweep I/O). Keep hypothesis-specific logic in `studies/<name>/`.
 
 **Strict at seams, loose in the middle:** always use `Symbol` + `load`/`load_track` for data and `Signal` + `simulate` for backtest output; pandas joins and optional `FeatureBuilder` in between are up to you.
 
@@ -412,6 +412,39 @@ for r in results:
     print(r.fold_id, r.metrics["auc"], r.metrics["brier"])
 ```
 
+### Regression, quantile heads, and baselines
+
+Path C studies with continuous targets (log returns, realized vol, quantiles) use the same
+`walk_forward_fit` loop with a `task` argument:
+
+```python
+from cryoquant.models import TabularRegressor, QuantileModel, walk_forward_fit, concat_oos_preds
+from cryoquant.models.vol_baselines import HAR_RVPredictor
+
+vol_results = walk_forward_fit(
+    TabularRegressor,
+    X, y_rv,
+    train_window_bars=500,
+    test_window_bars=60,
+    step_bars=60,
+    task="regression",
+)
+oos_rv = concat_oos_preds(vol_results)
+```
+
+Reference baselines: `NaiveRandomWalk`, `RollingMeanReturn`, `RidgePredictor`, `HAR_RVPredictor`.
+
+### Statistical validation (permutation, leakage scan)
+
+```python
+from cryoquant.models import leakage_feature_scan, permutation_test
+
+report = leakage_feature_scan(X, y, name_patterns=("fwd_", "label_"))
+perm = permutation_test(fit_predict_fn, X, y, metric_fn, n_permutations=20)
+```
+
+`leakage_audit` is a backward-compatible alias for `leakage_feature_scan`.
+
 ---
 
 ## 9. Creating signals
@@ -577,6 +610,22 @@ pnl_pct, costs, dte_actual = _eval_leg(
 Tunable parameters: `DTE` (days to expiry at entry), `DELTA` (target option delta), `HOLD_DAYS`.
 Reports are written to `reports/ema_cross_calls_dte3_d30_h72.html` etc.
 
+### Short-volatility selling (sell-side economics)
+
+For studies that fire on a VRP or exceedance gate and sell strangles or credit spreads:
+
+```python
+from cryoquant.backtest import ShortVolConfig, evaluate_short_vol, cvar_loss, calibration_gap
+from cryoquant.signals.base import BoolSignal
+
+cfg = ShortVolConfig(structure="strangle", target_delta=0.15, dte=7)
+fires = BoolSignal(signal_id="vrp_gate", condition=lambda df: df["fire"], version="1", symbol_str="deribit:BTC")
+result = evaluate_short_vol(fires, bars, cfg, chains_dir=chains_dir)
+tail = cvar_loss(result.pnl_pct)
+```
+
+Track trial count for DSR via `cryoquant.backtest.trial_log.append_trial`.
+
 ---
 
 ## 12. Publishing a signal
@@ -663,7 +712,7 @@ entry_fn = as_entry_condition(long_signal, bars)
 ### Code organisation
 
 - Library improvements → `cryoquant/` or `cryocore/`.
-- New analysis → `analyses/<name>/` with its own `backtest.py` and notebook.
+- New analysis → `studies/<name>/` with its own `backtest.py` and notebook.
 - Scripts in `scripts/` are the canonical runnable examples for each signal.
 - Never commit generated HTML/parquet/PNG artefacts (`reports/` is gitignored).
 
@@ -683,7 +732,7 @@ Pick a checklist by path (see [§2](#2-choose-your-path)):
 
 **Path B — Study / sweep**
 ```
-1. analyses/<name>/config.yaml + universe for ingest
+1. studies/<name>/config.yaml + universe for ingest
 2. FeatureBuilder(s) or trend_builders
 3. breakout_sim or simulate + sweep_collector
 4. score_leaderboard + bundle artifacts
@@ -704,7 +753,7 @@ Legacy linear workflow (any path):
 2. Prototype signal       cryoquant/signals/my_signal.py
 3. Write a backtest       scripts/my_signal_backtest.py
 4. Run and check DSR      python scripts/my_signal_backtest.py
-5. If credible (DSR>0.95) move to analyses/my_signal/
+5. If credible (DSR>0.95) move to studies/my_signal/
 6. Optional: train a model and wrap it as a ProbSignal
 7. Register the signal    (model registry + signal_id naming convention)
 8. Publish (optional)     emit_history() / Pine emitter — CryoTrader integration deferred (Phase 6B)

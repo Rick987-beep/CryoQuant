@@ -6,10 +6,12 @@ import pandas as pd
 import pytest
 
 from cryoquant.features.align import (
+    align_by_available_utc,
     align_frame_column,
     align_many,
     align_series,
     join_features,
+    union_daily_index,
 )
 
 
@@ -100,3 +102,35 @@ class TestAlignHelpers:
         right = pd.DataFrame({"b": [4, 5, 6]}, index=idx)
         out = join_features(left, right)
         assert list(out.columns) == ["a", "b"]
+
+
+class TestAlignByAvailableUtc:
+    def test_sparse_event_frame(self) -> None:
+        target = _idx(5, start="2024-01-11")
+        frame = pd.DataFrame(
+            {
+                "value": [100.0, 200.0],
+                "available_utc": pd.to_datetime(
+                    ["2024-01-11 20:00", "2024-01-12 20:00"], utc=True
+                ),
+            },
+            index=pd.to_datetime(["2024-01-11", "2024-01-12"], utc=True),
+        )
+        out = align_by_available_utc(target, frame)
+        assert pd.isna(out.iloc[0])  # bar open before available_utc
+        assert out.iloc[1] == 100.0
+        assert out.iloc[2] == 200.0
+
+    def test_empty_frame_returns_nan(self) -> None:
+        target = _idx(3)
+        out = align_by_available_utc(target, pd.DataFrame())
+        assert out.isna().all()
+
+
+class TestUnionDailyIndex:
+    def test_union_sorted(self) -> None:
+        a = pd.DataFrame({"c": [1]}, index=pd.to_datetime(["2024-01-01"], utc=True))
+        b = pd.DataFrame({"c": [2]}, index=pd.to_datetime(["2024-01-03"], utc=True))
+        out = union_daily_index({"BTC": a, "ETH": b})
+        assert len(out) == 2
+        assert out.is_monotonic_increasing
