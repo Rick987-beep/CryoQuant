@@ -116,6 +116,21 @@ class TestCoinMetrics:
         assert df["available_utc"].iloc[0].date() == date(2024, 6, 2)
 
 
+_BLS_ICS_SAMPLE = """BEGIN:VCALENDAR
+BEGIN:VEVENT
+UID:test-cpi
+DTSTART;TZID=US-Eastern:20250115T083000
+SUMMARY:Consumer Price Index
+END:VEVENT
+BEGIN:VEVENT
+UID:test-nfp
+DTSTART;TZID=US-Eastern:20250110T083000
+SUMMARY:Employment Situation
+END:VEVENT
+END:VCALENDAR
+"""
+
+
 class TestFOMC:
     def test_decision_flag_not_before_available(self):
         d = date(2024, 3, 20)
@@ -132,6 +147,48 @@ class TestFOMC:
         feat = fomc_calendar.build_fomc_calendar_features(index)
         assert "is_fomc_decision_day" in feat.columns
         assert feat.loc[pd.Timestamp("2024-03-20", tz="UTC"), "is_fomc_decision_day"] == 1.0
+
+
+class TestBLSCalendar:
+    def test_fetch_macro_releases_parses_ics(self):
+        from cryoquant.data.sources import bls_calendar
+
+        mock_resp = MagicMock()
+        mock_resp.text = _BLS_ICS_SAMPLE
+        mock_resp.raise_for_status = MagicMock()
+        mock_sess = MagicMock()
+        mock_sess.get.return_value = mock_resp
+
+        df = bls_calendar.fetch_macro_releases(
+            date(2025, 1, 1), date(2025, 12, 31), session=mock_sess
+        )
+        assert len(df) == 2
+        assert set(df["event_type"]) == {"cpi", "nfp"}
+        assert df.index.tz is not None
+        assert "available_utc" in df.columns
+
+
+class TestEconomicEvents:
+    def test_fetch_scheduled_events_merges_fomc_and_bls(self):
+        from cryoquant.data.sources import economic_events
+
+        mock_resp = MagicMock()
+        mock_resp.text = _BLS_ICS_SAMPLE
+        mock_resp.raise_for_status = MagicMock()
+        mock_sess = MagicMock()
+        mock_sess.get.return_value = mock_resp
+
+        with patch(
+            "cryoquant.data.sources.earnings_calendar.yf.Ticker"
+        ) as mock_ticker:
+            mock_ticker.return_value.earnings_dates = pd.DataFrame()
+            df = economic_events.fetch_scheduled_events(
+                date(2025, 1, 1),
+                date(2025, 12, 31),
+                session=mock_sess,
+            )
+        assert (df["event_type"] == "fomc").any()
+        assert (df["event_type"] == "cpi").any()
 
 
 class TestDeribitDVOL:

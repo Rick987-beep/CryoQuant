@@ -1,0 +1,135 @@
+# Tudysho calm nights — session extrusion study
+study_id: tudysho_calm_nights
+description: >
+  Test whether quiet US mornings predict quiet afternoons and overnight holds,
+  enabling earlier/higher-delta tudysho entry with fewer contracts at fixed NAV premium.
+
+handover:
+  source_repo: /Users/ulrikdeichsel/CryoBacktester
+  package_dir: package/
+
+objective:
+  primary_kpi: contracts_per_trade
+  nav_premium_pct: 0.8
+  min_win_rate_pct: 97.0
+  reference_tail_rate_pct: 0.7
+
+data:
+  spot:
+    symbol: binance.spot/BTCUSDT
+    interval: 15m
+  options:
+    source: cryobacktester
+  date_range:
+    start: "2025-01-01"
+    end: "2026-07-09"
+
+analysis:
+  effective_start: "2025-04-11"   # Deribit options parquet floor
+  warmup_days: 60                  # slot-A days before gate evaluation
+  exclude_weekends_from_baselines: true
+
+slot:
+  weekdays: [mon, tue, wed, thu]   # enforced in slot_a_entry_days()
+
+predictor:
+  default: us_morning
+  us_morning:
+    label: "US morning 09:30-12:00 NYC"
+  london_us:
+    label: "London+US 07:00 UTC - 12:00 NYC"
+    start_utc: "07:00"
+    end_nyc: "12:00"
+
+sessions:
+  us_morning:   { start: "09:30", end: "12:00" }
+  us_afternoon: { start: "12:00", end: "16:00" }
+  us_post_close: { start: "16:00", end: "24:00" }
+
+extrusion:
+  rolling_days: 60
+  quiet_label: tertile
+  quiet_tertile: 0.33
+  quiet_normalized_threshold: 0.75  # secondary diagnostic only
+  exclude_weekends: true          # skip Sat/Sun bars in session/hold metrics
+
+phase0_complete: true
+phase0_complete_date: "2026-07-10"
+phase1_complete: true
+phase1_complete_date: "2026-07-10"
+phase2_complete: true
+phase2_complete_date: "2026-07-10"
+phase3_complete: true
+phase3_complete_date: "2026-07-10"
+phase3b_predictor_comparison_complete: true
+phase3b_complete_date: "2026-07-10"
+phase4_events_in_progress: true
+
+event_calendar:
+  mag7: [AAPL, MSFT, GOOGL, AMZN, META, NVDA, TSLA]
+  tiers:
+    tier1: [fomc, cpi, nfp]
+    tier2: [ppi, jolts, earnings]
+  hold_window_start_nyc: "12:00"
+  bls_ics_url: "https://www.bls.gov/schedule/news_release/bls.ics"
+  macro_store:
+    merged: economic_events/us_scheduled
+    components:
+      - fed_calendar/FOMC_DECISION_DAYS
+      - bls_calendar/macro_releases
+      - yahoo_calendar/mag7_earnings
+
+predictor_comparison:
+  preferred_variant: london_us
+  us_morning:
+    primary_lift: 1.637
+    false_calm_rate_pct: 14.3
+    contract_reduction_pct: 58.3
+    phase3_spearman: 0.313
+    phase3_oos_spearman: 0.308
+  london_us:
+    primary_lift: 1.684
+    false_calm_rate_pct: 12.2
+    contract_reduction_pct: 59.6
+    phase3_spearman: 0.310
+    phase3_oos_spearman: 0.381
+
+continuous_entry:
+  earliest_nyc: "12:00"
+  latest_nyc: "16:00"
+  step_minutes: 15
+
+phase3_verification:
+  min_train_days: 80
+  test_fold_days: 40
+  calibration_bins: 10
+  permutation_n: 2000
+
+phase3_gates:
+  min_spearman: 0.25
+  max_perm_p: 0.05
+  min_oos_spearman: 0.15
+
+hypothesis:
+  min_lift: 1.5
+  max_p_value: 0.05
+  min_sample_days: 100
+  primary_slot: slot_a_mon_thu
+
+false_calm:
+  delta: 0.10
+  min_otm_pct: 2.6
+  proximity_buffer_usd: 1000
+
+counterfactual:
+  entry_times_nyc: ["12:00", "14:00", "16:00"]
+  deltas: [0.10, 0.15, 0.20]
+  min_otm_pct: [1.0, 1.5, 2.6]
+  account_nav_usd: 100000
+
+profiles:
+  base:       { entry_time: "16:00", delta: 0.10, min_otm_pct: 2.6 }
+  aggressive: { entry_time: "12:00", delta: 0.20, min_otm_pct: 1.0 }
+
+reporting:
+  output_dir: reports/

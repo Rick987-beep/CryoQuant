@@ -1,0 +1,30 @@
+# Economic + earnings calendar — CryoQuant ingest universe
+# Pattern mirrors studies/BTCpredict/universe.yaml macro_events section.
+
+macro_events:
+  - id: D14
+    source: fed_calendar
+    series_id: FOMC_DECISION_DAYS
+    start: "2018-01-01"
+    notes: FOMC rate-decision announcement days (~2pm ET)
+
+economic_calendar:
+  - id: ECON_BLS
+    source: bls_calendar
+    series_id: macro_releases
+    start: "2025-01-01"
+    notes: BLS ICS feed — CPI, NFP, PPI, JOLTS, etc.
+
+  - id: ECON_MAG7
+    source: yahoo_calendar
+    series_id: mag7_earnings
+    start: "2019-01-01"
+    tickers: [AAPL, MSFT, GOOGL, AMZN, META, NVDA, TSLA]
+    notes: Yahoo Finance earnings_dates (~6y history per ticker on free tier)
+
+  - id: ECON_MERGED
+    source: economic_events
+    series_id: us_scheduled
+    start: "2018-01-01"
+    derived: true
+    notes: Merged FOMC + BLS + earnings for hold-window joins

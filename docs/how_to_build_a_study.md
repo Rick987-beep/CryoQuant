@@ -160,6 +160,9 @@ Eight framework source modules fetch crypto sentiment, on-chain, institutional, 
 | `coinmetrics` | `fetch_asset_metric` | `coinmetrics / {asset}_{metric}` | `write_frame` | chain-date + 1d |
 | `deribit_indices` | `fetch_dvol` | `deribit / {underlying}_DVOL` | `write_series` | same-calendar |
 | `fomc_calendar` | `fetch_fomc_decision_days` | `fed_calendar / fomc_decision_days` | `write_frame` | ~2pm ET announcement |
+| `bls_calendar` | `fetch_macro_releases` | `bls_calendar / macro_releases` | `write_frame` | scheduled release instant |
+| `earnings_calendar` | `fetch_earnings_events` | `yahoo_calendar / mag7_earnings` | `write_frame` | scheduled release instant |
+| `economic_events` | `ingest_scheduled_events`, `load_scheduled_events` | `economic_events / us_scheduled` | `write_frame` | merged FOMC+BLS+earnings |
 | `xoomar_oi` | `fetch_open_interest_daily` | `xoomar / {ticker}_open_interest` | `write_series` | from 2021-01 |
 
 ```python
