@@ -18,8 +18,12 @@ log = logging.getLogger(__name__)
 
 _MACRO_VENUES: frozenset[str] = frozenset({"fred", "manual", "cboe"})
 
-# CBOE ingest writes VIX close under this series_id (see data.ingest.ingest_macro).
-_CBOE_SERIES_ID: dict[str, str] = {"VIX": "VIX_CLOSE"}
+# CBOE ingest series_id aliases for load_track (see data.ingest.ingest_macro).
+_CBOE_SERIES_ID: dict[str, str] = {
+    "VIX": "VIX_CLOSE",
+    "VX": "VX_FRONT_SETTLE",
+    "VX_FRONT": "VX_FRONT_SETTLE",
+}
 
 
 def is_ohlcv_symbol(symbol: Symbol) -> bool:

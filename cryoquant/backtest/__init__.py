@@ -2,12 +2,24 @@
 
 Deliverables:
     spot_pnl       — vectorised fixed-hold spot simulation
+    replay         — linear weight / touch-fill market replay + BarLog
     option_lookup  — Deribit option chain P&L evaluation
     short_vol      — sell-side option economics
     robustness     — deflated Sharpe, bootstrap CI, trial log
     reports        — HTML report rendering
     bundle         — sweep artifact I/O (RunBundle)
 """
+from cryoquant.backtest.account import (
+    VXM,
+    VX,
+    AccountConfig,
+    ExecutionModel,
+    InstrumentSpec,
+    apply_fill_price,
+    build_futures_equity,
+    futures_pnl_dollars,
+)
+from cryoquant.backtest.replay import ReplayConfig, ReplayResult, replay_weights, long_touch_fill, short_touch_fill
 from cryoquant.backtest.spot_pnl import SpotResult, simulate
 from cryoquant.backtest.option_lookup import ExitRule, OptionResult, evaluate
 from cryoquant.backtest.robustness import deflated_sharpe, bootstrap_ci
@@ -37,6 +49,20 @@ __all__ = [
     # spot_pnl
     "simulate",
     "SpotResult",
+    # replay + account
+    "ReplayConfig",
+    "ReplayResult",
+    "replay_weights",
+    "long_touch_fill",
+    "short_touch_fill",
+    "AccountConfig",
+    "ExecutionModel",
+    "InstrumentSpec",
+    "VXM",
+    "VX",
+    "apply_fill_price",
+    "build_futures_equity",
+    "futures_pnl_dollars",
     # option_lookup
     "evaluate",
     "ExitRule",

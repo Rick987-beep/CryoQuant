@@ -133,7 +133,9 @@ groups:
       - binance.spot:ETHUSDT
   macro_daily:
     symbols:
-      - fred:VIX
+      - cboe:VIX          # cash VIX → macro_store cboe/VIX_*
+      - cboe:VX_FRONT     # continuous front-month VX futures (shared)
+      - fred:VIXCLS
       - yahoo:SPY
 ```
 
@@ -357,22 +359,25 @@ publish_study("studies/my_study", manifest=manifest)  # or rely on reporting: in
 
 ```text
 studies/<name>/
-  universe.yaml          # Path B ingest manifest (optional)
-  run_ingest.py          # thin CLI wrapper (optional)
-  backtest.py            # entry point for this study
-  exploration.ipynb      # parameter sweeps
-  bundles/               # RunBundle dirs (gitignored)
-  reports/               # manifest, index HTML, phase JSON (gitignored)
-  input/                 # study-local raw files (optional)
+  README.md | PLAN.md | HANDOVER.md | RESULTS.md
+  config.yaml | universe.yaml
+  run_*.py | jobs/       # projects: phases; adhoc: jobs/
+  src/                   # study-local only
+  tests/
+  input/ data/ bundles/ reports/
 
 cryoquant/               # promote here when reusable
-  reporting/             # manifest, index HTML, phase summaries, charts
-  data/sources/          # new venue fetchers
-  features/builders.py   # shared feature sets
-  signals/               # signal factories used by multiple studies
+  study_paths.py         # StudyPaths layout helper
+  sessions/nyc.py        # NYC wall-clock + Deribit expiry
+  reporting/html_brand.py
+  data/sources/          # venue fetchers (incl. deribit_spot_bars)
+  features/              # extrusion, turbulence, calm_score, …
+  signals/
 ```
 
 **Promote rule:** move code into `cryoquant/` when a second analysis needs it, or when it has zero domain semantics (alignment, metrics, ingest helpers). Keep hypothesis-specific economics in `studies/`.
+
+Living backlog of study → library candidates: [`studies/README.md`](../studies/README.md#library-promote-backlog).
 
 ---
 

@@ -1,0 +1,7 @@
+# Batch ingest for VIXStrategy. Macro venue → macro_store.
+# Run: python studies/VIXStrategy/run_phase0_data.py
+#      python studies/VIXStrategy/run_ingest_vx_front.py
+macro_vix:
+  symbols:
+    - cboe:VIX
+    - cboe:VX_FRONT   # continuous front-month VX futures (daily OHLC+settle)

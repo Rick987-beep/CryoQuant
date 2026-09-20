@@ -79,6 +79,8 @@ _DEFAULT_INSTRUMENTS: list[Instrument] = [
     Instrument(Symbol("binance.perp", "BTCUSDT"),  "crypto",    "USDT", "crypto_24_7"),
     Instrument(Symbol("binance.spot", "SOLUSDT"),  "crypto",    "USDT", "crypto_24_7"),
     Instrument(Symbol("binance.perp", "SOLUSDT"),  "crypto",    "USDT", "crypto_24_7"),
+    Instrument(Symbol("binance.spot", "BNBUSDT"),  "crypto",    "USDT", "crypto_24_7"),
+    Instrument(Symbol("binance.spot", "XRPUSDT"),  "crypto",    "USDT", "crypto_24_7"),
     Instrument(Symbol("deribit",      "BTC"),       "crypto",    "USD",  "crypto_24_7"),
     Instrument(Symbol("deribit",      "ETH"),       "crypto",    "USD",  "crypto_24_7"),
 
@@ -91,6 +93,12 @@ _DEFAULT_INSTRUMENTS: list[Instrument] = [
     Instrument(Symbol("yahoo", "QQQ"),   "equity",    "USD", "nyse"),
     Instrument(Symbol("yahoo", "DIA"),   "equity",    "USD", "nyse"),
     Instrument(Symbol("yahoo", "IWM"),   "equity",    "USD", "nyse"),
+
+    # Crypto-related equities (Yahoo) — tenx_thielen_scorecard
+    Instrument(Symbol("yahoo", "MSTR"),  "equity",    "USD", "nyse"),
+    Instrument(Symbol("yahoo", "COIN"),  "equity",    "USD", "nyse"),
+    Instrument(Symbol("yahoo", "MARA"),  "equity",    "USD", "nyse"),
+    Instrument(Symbol("yahoo", "NVDA"),  "equity",    "USD", "nyse"),
 
     # US bond ETFs (Yahoo)
     Instrument(Symbol("yahoo", "TLT"),   "equity",    "USD", "nyse"),  # iShares 20yr Treasury
@@ -155,7 +163,8 @@ _DEFAULT_INSTRUMENTS: list[Instrument] = [
                      "hourly_source": "twelvedata"}),
 
     # VIX (CBOE — via macro_store, not OHLCV loader)
-    Instrument(Symbol("cboe",  "VIX"),   "volatility", "USD", "nyse"),
+    Instrument(Symbol("cboe",  "VIX"),       "volatility", "USD", "nyse"),
+    Instrument(Symbol("cboe",  "VX_FRONT"),  "volatility", "USD", "nyse"),  # continuous front VX
 ]
 
 _INSTRUMENT_REGISTRY: dict[Symbol, Instrument] = {i.symbol: i for i in _DEFAULT_INSTRUMENTS}

@@ -92,15 +92,24 @@ def compute_metrics(
     m["n_trades"] = n
 
     # --- Basic trade-level stats ---
-    m["total_return"] = float(np.prod(1.0 + pnl_arr) - 1.0)
-    m["win_rate"]     = float(np.mean(pnl_arr > 0))
-    m["expectancy"]   = float(np.mean(pnl_arr))
-
-    wins  = pnl_arr[pnl_arr > 0]
-    losses = pnl_arr[pnl_arr < 0]
-    gross_win  = float(wins.sum())  if len(wins)   else 0.0
-    gross_loss = float(-losses.sum()) if len(losses) else 0.0
+    # Prefer dollar PnL for win/loss aggregates when present (account mode).
+    if "pnl_abs" in trades.columns and trades["pnl_abs"].notna().any():
+        dollar = trades["pnl_abs"].to_numpy(dtype=float)
+        m["win_rate"] = float(np.mean(dollar > 0))
+        m["expectancy"] = float(np.mean(dollar))
+        wins_d = dollar[dollar > 0]
+        losses_d = dollar[dollar < 0]
+        gross_win = float(wins_d.sum()) if len(wins_d) else 0.0
+        gross_loss = float(-losses_d.sum()) if len(losses_d) else 0.0
+    else:
+        m["win_rate"] = float(np.mean(pnl_arr > 0))
+        m["expectancy"] = float(np.mean(pnl_arr))
+        wins = pnl_arr[pnl_arr > 0]
+        losses = pnl_arr[pnl_arr < 0]
+        gross_win = float(wins.sum()) if len(wins) else 0.0
+        gross_loss = float(-losses.sum()) if len(losses) else 0.0
     m["profit_factor"] = min(gross_win / gross_loss, 99.9) if gross_loss > 0 else 99.9
+    m["total_return"] = float(np.prod(1.0 + pnl_arr) - 1.0)
 
     # --- Legacy sharpe: inflated placeholder; overridden below when n_years known ---
     # Set initially so callers that pass no equity still get a non-NaN value.
@@ -112,6 +121,7 @@ def compute_metrics(
     # --- Equity-curve metrics ---
     if equity is not None and len(equity) > 1:
         eq = equity.to_numpy(dtype=float)
+        initial = float(eq[0]) if float(eq[0]) != 0.0 else 1.0
 
         # --- Calendar-based n_years (uses DatetimeIndex when available) ---
         n_years: float
@@ -123,10 +133,11 @@ def compute_metrics(
         except Exception:
             n_years = max(len(equity) / float(bars_per_year), 1e-6)
 
-        # CAGR
+        # Account-level total return + CAGR (works for unit NAV and dollar equity)
         final = float(eq[-1])
-        if final > 0 and n_years > 0:
-            cagr = float(final ** (1.0 / n_years) - 1.0)
+        m["total_return"] = float(final / initial - 1.0)
+        if final > 0 and initial > 0 and n_years > 0:
+            cagr = float((final / initial) ** (1.0 / n_years) - 1.0)
             m["cagr"] = cagr
         else:
             cagr = float("nan")

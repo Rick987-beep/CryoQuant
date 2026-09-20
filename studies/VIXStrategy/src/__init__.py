@@ -1,0 +1,1 @@
+"""VIXStrategy — study-local helpers."""

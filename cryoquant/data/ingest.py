@@ -184,14 +184,21 @@ def ingest_macro(
             s = fetch_series(series_id, start, end)
             macro_store.write_series(source, series_id, s, force=force)
         elif source == "cboe":
-            from cryoquant.data.sources.cboe import fetch_vix
-            vix_df = fetch_vix(start, end)
-            macro_store.write_series("cboe", "VIX_CLOSE", vix_df["close"], force=force)
-            for col in ("open", "high", "low"):
-                if col in vix_df.columns and not vix_df[col].isnull().all():
-                    macro_store.write_series(
-                        "cboe", f"VIX_{col.upper()}", vix_df[col], force=force
-                    )
+            # Cash VIX index (default) or VX front-month futures continuous
+            if series_id in ("VX_FRONT", "VX", "VX_FRONT_SETTLE"):
+                from cryoquant.data.sources.cboe_vx_futures import ingest_vx_front
+
+                ingest_vx_front(start, end, force=force)
+            else:
+                from cryoquant.data.sources.cboe import fetch_vix
+
+                vix_df = fetch_vix(start, end)
+                macro_store.write_series("cboe", "VIX_CLOSE", vix_df["close"], force=force)
+                for col in ("open", "high", "low"):
+                    if col in vix_df.columns and not vix_df[col].isnull().all():
+                        macro_store.write_series(
+                            "cboe", f"VIX_{col.upper()}", vix_df[col], force=force
+                        )
         else:
             log.error("FAIL %s — unknown macro venue %r", sym_str, source)
             return False

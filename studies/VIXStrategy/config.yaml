@@ -1,0 +1,43 @@
+# VIXStrategy — develop a tradable / signal strategy on CBOE VIX
+study_id: vix_strategy
+description: >
+  Dual-overlay VIX study (T = spike catcher, Y = mean-reversion income) on
+  daily CBOE VIX OHLC. Scoreboard is a $100k Mini VIX (VXM) dollar account.
+  Research window is trailing 10 calendar years → yesterday UTC unless
+  explicitly overridden.
+
+# ---------------------------------------------------------------------------
+# DEFAULT RESEARCH WINDOW (locked for this study)
+# Exact trailing 10 calendar years, ending on the last complete UTC day
+# (yesterday). Do NOT change unless the user asks for a different range
+# explicitly. Ingest history stays longer (data.ingest_start) for warm-up.
+# ---------------------------------------------------------------------------
+window:
+  mode: trailing_years
+  years: 10
+  end: null  # null → yesterday UTC
+
+primary:
+  symbol: cboe:VIX
+  interval: 1d
+
+data:
+  ingest_start: "2010-01-01"  # post early CBOE OHLC quirks; full CSV goes to 1990
+  ohlc_parquet: data/vix_daily_ohlc.parquet
+  # Calendar days of pre-window history for feature lookbacks (not scored)
+  feature_warmup_days: 200
+
+backtest_defaults:
+  initial_cash: 100000
+  instrument: VXM          # Mini VIX futures — $100 per index point (VX = $1000)
+  contracts: 1
+  # Execution quality (hooks ready; currently frictionless mid)
+  fee_per_side: 0.0        # $/contract/side
+  spread_ticks: 0.0
+  slippage_ticks: 0.0
+  hold_h: 1
+
+reporting:
+  study: vix_strategy
+  formats:
+    - table_html

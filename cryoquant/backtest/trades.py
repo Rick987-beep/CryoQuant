@@ -108,11 +108,13 @@ def enrich_trades(
     if "exit_type" not in df.columns:
         df["exit_type"] = "fixed_hold"
 
-    # Position sizing placeholder
-    df["qty"] = 1.0
+    # Position sizing — keep simulator qty when provided (contracts / units)
+    if "qty" not in df.columns:
+        df["qty"] = 1.0
 
     # Gross P&L: reverse-engineer from net + fee, keep sign correct
-    df["gross_pnl_pct"] = df["pnl_pct"] + df["fee_pct"]
+    if "gross_pnl_pct" not in df.columns:
+        df["gross_pnl_pct"] = df["pnl_pct"] + df["fee_pct"]
 
     # Duration
     entry_ts = pd.to_datetime(df["entry_ts"], utc=True)
@@ -128,15 +130,18 @@ def enrich_trades(
 
     # Equity context — reconstruct equity_before / equity_after from the
     # stepped equity curve (equity jumps at exit_ts bars)
+    has_pnl_abs = "pnl_abs" in df.columns
     if equity is not None and not equity.empty:
         eq_before, eq_after = _equity_context(df, equity)
         df["equity_before"] = eq_before
         df["equity_after"]  = eq_after
-        df["pnl_abs"]       = df["pnl_pct"] * df["equity_before"]
+        if not has_pnl_abs:
+            df["pnl_abs"] = df["pnl_pct"] * df["equity_before"]
     else:
         df["equity_before"] = float("nan")
         df["equity_after"]  = float("nan")
-        df["pnl_abs"]       = float("nan")
+        if not has_pnl_abs:
+            df["pnl_abs"] = float("nan")
 
     # Enforce column order (add any missing with NaN)
     for col in TRADE_COLUMNS:
