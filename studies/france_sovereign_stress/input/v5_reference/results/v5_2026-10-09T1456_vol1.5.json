@@ -1,0 +1,942 @@
+{
+ "snapshot": {
+  "chain": "eurex_2026-10-09T1456.json",
+  "spread": 138.0,
+  "fetched_at": "2026-10-09T14:56:16+02:00"
+ },
+ "assumptions": {
+  "budget": 10000,
+  "levels": [
+   240,
+   300,
+   340,
+   400
+  ],
+  "optimise": 300,
+  "end": "2027-07-01",
+  "event_bdays": 15,
+  "f_range": [
+   0.1,
+   0.7
+  ],
+  "sig_s_daily": 4.7679514873490785,
+  "sig_b_daily": 5.929549508304035,
+  "rho": 0.14392426764339208,
+  "futures": {
+   "eur_per_bp": {
+    "FOAT": 87.58349276838244,
+    "FGBL": 96.5658919031578
+   },
+   "duration": {
+    "FOAT": 7.925641728620709,
+    "FGBL": 8.021455578015258
+   },
+   "carry_bp_per_day": {
+    "FOAT": 0.11417676646494913,
+    "FGBL": 0.014711560082308287
+   },
+   "hedge_ratio": 0.9069816582465425,
+   "corr_price_yield": {
+    "FOAT": -0.9813694707710073,
+    "FGBL": -0.983030523945912
+   },
+   "calib_days": 20
+  },
+  "n": 10000,
+  "fut_cap_contracts": 20,
+  "stock_cost_pa": 0.035,
+  "vol_mult": 1.5,
+  "stock_beta_mult": 1.0,
+  "stocks": {
+   "ADP.PA": {
+    "beta_s": -0.002269,
+    "beta_b": -0.000986,
+    "idio": 0.019638,
+    "r2": 0.130502
+   },
+   "AF.PA": {
+    "beta_s": -0.003936,
+    "beta_b": -0.00044,
+    "idio": 0.025549,
+    "r2": 0.077648
+   },
+   "AMUN.PA": {
+    "beta_s": -0.002331,
+    "beta_b": -0.00015,
+    "idio": 0.014002,
+    "r2": 0.111564
+   },
+   "COV.PA": {
+    "beta_s": -0.002112,
+    "beta_b": -0.001198,
+    "idio": 0.010591,
+    "r2": 0.232731
+   },
+   "CS.PA": {
+    "beta_s": -0.001758,
+    "beta_b": -0.000267,
+    "idio": 0.010594,
+    "r2": 0.104363
+   },
+   "DG.PA": {
+    "beta_s": -0.002452,
+    "beta_b": -0.000528,
+    "idio": 0.013027,
+    "r2": 0.179029
+   },
+   "EN.PA": {
+    "beta_s": -0.001983,
+    "beta_b": -0.00028,
+    "idio": 0.013434,
+    "r2": 0.117445
+   },
+   "ENGI.PA": {
+    "beta_s": -0.001156,
+    "beta_b": -0.000503,
+    "idio": 0.013522,
+    "r2": 0.069322
+   },
+   "FGR.PA": {
+    "beta_s": -0.002763,
+    "beta_b": -0.000259,
+    "idio": 0.014954,
+    "r2": 0.162413
+   },
+   "GFC.PA": {
+    "beta_s": -0.001554,
+    "beta_b": -0.000991,
+    "idio": 0.010053,
+    "r2": 0.199862
+   },
+   "LI.PA": {
+    "beta_s": -0.001215,
+    "beta_b": -0.000647,
+    "idio": 0.008625,
+    "r2": 0.137216
+   },
+   "ORA.PA": {
+    "beta_s": -0.000389,
+    "beta_b": -0.000418,
+    "idio": 0.016508,
+    "r2": 0.021822
+   },
+   "RNO.PA": {
+    "beta_s": -0.001775,
+    "beta_b": -7e-05,
+    "idio": 0.021632,
+    "r2": 0.034307
+   },
+   "SCR.PA": {
+    "beta_s": -0.001893,
+    "beta_b": -0.000192,
+    "idio": 0.013117,
+    "r2": 0.063879
+   },
+   "SPIE.PA": {
+    "beta_s": -0.002426,
+    "beta_b": 9e-06,
+    "idio": 0.016645,
+    "r2": 0.101435
+   },
+   "URW.PA": {
+    "beta_s": -0.001983,
+    "beta_b": -0.000799,
+    "idio": 0.008713,
+    "r2": 0.179416
+   },
+   "VIE.PA": {
+    "beta_s": -0.00173,
+    "beta_b": -0.000549,
+    "idio": 0.011645,
+    "r2": 0.130514
+   },
+   "^FCHI": {
+    "beta_s": -0.001718,
+    "beta_b": -0.000336,
+    "idio": 0.007586,
+    "r2": 0.185983
+   }
+  }
+ },
+ "stock_rank": [
+  {
+   "tic": "Short CAC 40 future (FCE)",
+   "rule": "stop 12, add every +6 (lock 0%)",
+   "mean": 3.0,
+   "median": 3.78,
+   "p_lost": 0.306
+  },
+  {
+   "tic": "Short Eiffage",
+   "rule": "stop 12, add every +12 (lock 0%)",
+   "mean": 2.94,
+   "median": -0.06,
+   "p_lost": 0.521
+  },
+  {
+   "tic": "Short Amundi",
+   "rule": "stop 12, add every +12 (lock 0%)",
+   "mean": 2.85,
+   "median": 2.99,
+   "p_lost": 0.478
+  },
+  {
+   "tic": "Short Vinci",
+   "rule": "stop 12, add every +12 (lock 0%)",
+   "mean": 2.8,
+   "median": 2.93,
+   "p_lost": 0.481
+  },
+  {
+   "tic": "Short Air France-KLM",
+   "rule": "stop 20, add every +10 (lock 0%)",
+   "mean": 2.79,
+   "median": -0.04,
+   "p_lost": 0.563
+  },
+  {
+   "tic": "Short Spie",
+   "rule": "stop 12, add every +12 (lock 0%)",
+   "mean": 2.78,
+   "median": -0.06,
+   "p_lost": 0.521
+  },
+  {
+   "tic": "Short AXA",
+   "rule": "stop 12, add every +6 (lock 0%)",
+   "mean": 2.69,
+   "median": 3.4,
+   "p_lost": 0.403
+  },
+  {
+   "tic": "Short Unibail-Rodamco-Westfield",
+   "rule": "stop 12, add every +6 (lock 0%)",
+   "mean": 2.62,
+   "median": 3.31,
+   "p_lost": 0.417
+  },
+  {
+   "tic": "Short SCOR",
+   "rule": "stop 12, add every +12 (lock 0%)",
+   "mean": 2.62,
+   "median": 3.14,
+   "p_lost": 0.424
+  },
+  {
+   "tic": "Short Bouygues",
+   "rule": "stop 12, add every +12 (lock 0%)",
+   "mean": 2.6,
+   "median": 3.07,
+   "p_lost": 0.442
+  },
+  {
+   "tic": "Short Veolia",
+   "rule": "stop 12, add every +6 (lock 0%)",
+   "mean": 2.41,
+   "median": 2.65,
+   "p_lost": 0.433
+  },
+  {
+   "tic": "Short Covivio",
+   "rule": "stop 12, add every +12 (lock 0%)",
+   "mean": 2.28,
+   "median": 2.32,
+   "p_lost": 0.454
+  },
+  {
+   "tic": "Short Aéroports de Paris",
+   "rule": "stop 12, add every +12 (lock 0%)",
+   "mean": 2.02,
+   "median": -0.06,
+   "p_lost": 0.584
+  },
+  {
+   "tic": "Short Gecina",
+   "rule": "stop 12, add every +6 (lock 0%)",
+   "mean": 2.01,
+   "median": 2.07,
+   "p_lost": 0.426
+  },
+  {
+   "tic": "Short Renault",
+   "rule": "stop 12, add every +12 (lock 0%)",
+   "mean": 2.0,
+   "median": -0.06,
+   "p_lost": 0.578
+  },
+  {
+   "tic": "Short Klépierre",
+   "rule": "stop 12, add every +6 (lock 0%)",
+   "mean": 1.98,
+   "median": 2.17,
+   "p_lost": 0.314
+  },
+  {
+   "tic": "Short Engie",
+   "rule": "stop 12, add every +6 (lock 0%)",
+   "mean": 1.78,
+   "median": 1.5,
+   "p_lost": 0.447
+  },
+  {
+   "tic": "Short Orange",
+   "rule": "stop 20, add every +10 (lock 0%)",
+   "mean": 1.02,
+   "median": 1.0,
+   "p_lost": 0.269
+  }
+ ],
+ "best": [
+  {
+   "family": "futures",
+   "name": "Spread trade: short FOAT / long FGBL (DV01-neutral)",
+   "rule": "stop 40, add every +20 (lock 0%)",
+   "mean": 8.357506491494052,
+   "median": 14.068959560743433,
+   "p_lost": 0.4595,
+   "p_5x": 0.5387,
+   "p_10x": 0.5371,
+   "p95": 16.86220937154392,
+   "levels": {
+    "240": 3.08,
+    "300": 8.36,
+    "340": 12.09,
+    "400": 17.78
+   },
+   "wrong_mean": 0.58,
+   "by_f": [
+    8.24,
+    8.3,
+    8.53
+   ],
+   "by_timing": [
+    14.55,
+    8.04,
+    3.75
+   ],
+   "order": [
+    "Sell 2.9 FOAT Dec",
+    "Buy 2.6 FGBL Dec",
+    "€250 per bp"
+   ]
+  },
+  {
+   "family": "futures",
+   "name": "Spread trade: short FOAT / long FGBL (DV01-neutral)",
+   "rule": "stop 30, add every +30 (lock 0%)",
+   "mean": 8.081860339379377,
+   "median": -0.04400225030621455,
+   "p_lost": 0.5511,
+   "p_5x": 0.4435,
+   "p_10x": 0.4415,
+   "p95": 19.512553734012922,
+   "levels": {
+    "240": 3.39,
+    "300": 8.08,
+    "340": 11.21,
+    "400": 16.06
+   },
+   "wrong_mean": 0.59,
+   "by_f": [
+    7.76,
+    8.1,
+    8.39
+   ],
+   "by_timing": [
+    15.42,
+    7.41,
+    2.92
+   ],
+   "order": [
+    "Sell 3.8 FOAT Dec",
+    "Buy 3.5 FGBL Dec",
+    "€333 per bp"
+   ]
+  },
+  {
+   "family": "futures",
+   "name": "Spread trade: short FOAT / long FGBL (DV01-neutral)",
+   "rule": "stop 30, add every +15 (lock 0%)",
+   "mean": 7.675354636756785,
+   "median": -0.05467116727909526,
+   "p_lost": 0.5984,
+   "p_5x": 0.3821,
+   "p_10x": 0.3771,
+   "p95": 21.35729695155425,
+   "levels": {
+    "240": 3.54,
+    "300": 7.68,
+    "340": 10.24,
+    "400": 14.43
+   },
+   "wrong_mean": 0.58,
+   "by_f": [
+    7.36,
+    7.64,
+    8.02
+   ],
+   "by_timing": [
+    16.29,
+    6.49,
+    2.01
+   ],
+   "order": [
+    "Sell 3.8 FOAT Dec",
+    "Buy 3.5 FGBL Dec",
+    "€333 per bp"
+   ]
+  },
+  {
+   "family": "futures",
+   "name": "Spread trade: short FOAT / long FGBL (DV01-neutral)",
+   "rule": "stop 40, add every +40 (lock 0%)",
+   "mean": 7.331713790477911,
+   "median": 11.310787203780496,
+   "p_lost": 0.4001,
+   "p_5x": 0.5987,
+   "p_10x": 0.5922,
+   "p95": 13.628198818591521,
+   "levels": {
+    "240": 2.74,
+    "300": 7.33,
+    "340": 11.49,
+    "400": 17.82
+   },
+   "wrong_mean": 0.61,
+   "by_f": [
+    7.23,
+    7.26,
+    7.5
+   ],
+   "by_timing": [
+    11.79,
+    7.2,
+    3.93
+   ],
+   "order": [
+    "Sell 2.9 FOAT Dec",
+    "Buy 2.6 FGBL Dec",
+    "€250 per bp"
+   ]
+  },
+  {
+   "family": "futures",
+   "name": "Spread trade: short FOAT / long FGBL (DV01-neutral)",
+   "rule": "stop 20, add every +20 (lock 0%)",
+   "mean": 6.098964399619154,
+   "median": -0.07915557292490738,
+   "p_lost": 0.6509,
+   "p_5x": 0.274,
+   "p_10x": 0.259,
+   "p95": 24.079411983417668,
+   "levels": {
+    "240": 3.11,
+    "300": 6.1,
+    "340": 7.8,
+    "400": 10.78
+   },
+   "wrong_mean": 0.68,
+   "by_f": [
+    5.81,
+    6.07,
+    6.41
+   ],
+   "by_timing": [
+    15.16,
+    3.98,
+    0.98
+   ],
+   "order": [
+    "Sell 5.7 FOAT Dec",
+    "Buy 5.2 FGBL Dec",
+    "€500 per bp"
+   ]
+  },
+  {
+   "family": "futures",
+   "name": "Spread trade: short FOAT / long FGBL (DV01-neutral)",
+   "rule": "stop 60, add every +30 (lock 0%)",
+   "mean": 5.527015867805333,
+   "median": 6.991386016164471,
+   "p_lost": 0.2313,
+   "p_5x": 0.7662,
+   "p_10x": 0.0,
+   "p95": 8.089531133958449,
+   "levels": {
+    "240": 2.51,
+    "300": 5.53,
+    "340": 9.17,
+    "400": 16.8
+   },
+   "wrong_mean": 0.67,
+   "by_f": [
+    5.51,
+    5.51,
+    5.55
+   ],
+   "by_timing": [
+    7.5,
+    5.73,
+    3.76
+   ],
+   "order": [
+    "Sell 1.9 FOAT Dec",
+    "Buy 1.7 FGBL Dec",
+    "€167 per bp"
+   ]
+  },
+  {
+   "family": "futures",
+   "name": "Spread trade: short FOAT / long FGBL (DV01-neutral)",
+   "rule": "stop 20, add every +10 (lock 0%)",
+   "mean": 5.4107705467241765,
+   "median": -0.0916622229695925,
+   "p_lost": 0.6766,
+   "p_5x": 0.239,
+   "p_10x": 0.2153,
+   "p95": 25.21690081117747,
+   "levels": {
+    "240": 2.9,
+    "300": 5.41,
+    "340": 6.85,
+    "400": 9.18
+   },
+   "wrong_mean": 0.73,
+   "by_f": [
+    5.19,
+    5.43,
+    5.61
+   ],
+   "by_timing": [
+    14.58,
+    2.75,
+    0.74
+   ],
+   "order": [
+    "Sell 5.7 FOAT Dec",
+    "Buy 5.2 FGBL Dec",
+    "€500 per bp"
+   ]
+  },
+  {
+   "family": "futures",
+   "name": "Spread trade: short FOAT / long FGBL (DV01-neutral)",
+   "rule": "stop 20, add every +20 (lock 50%)",
+   "mean": 5.158111554294619,
+   "median": 0.8435389876299297,
+   "p_lost": 0.4713,
+   "p_5x": 0.2606,
+   "p_10x": 0.2546,
+   "p95": 19.818770286806156,
+   "levels": {
+    "240": 2.32,
+    "300": 5.16,
+    "340": 6.87,
+    "400": 9.81
+   },
+   "wrong_mean": 0.77,
+   "by_f": [
+    4.93,
+    5.13,
+    5.42
+   ],
+   "by_timing": [
+    12.48,
+    3.43,
+    1.04
+   ],
+   "order": [
+    "Sell 5.7 FOAT Dec",
+    "Buy 5.2 FGBL Dec",
+    "€500 per bp"
+   ]
+  }
+ ],
+ "family_best": {
+  "futures": {
+   "family": "futures",
+   "name": "Spread trade: short FOAT / long FGBL (DV01-neutral)",
+   "rule": "stop 40, add every +20 (lock 0%)",
+   "mean": 8.357506491494052,
+   "median": 14.068959560743433,
+   "p_lost": 0.4595,
+   "p_5x": 0.5387,
+   "p_10x": 0.5371,
+   "p95": 16.86220937154392,
+   "levels": {
+    "240": 3.08,
+    "300": 8.36,
+    "340": 12.09,
+    "400": 17.78
+   },
+   "wrong_mean": 0.58,
+   "by_f": [
+    8.24,
+    8.3,
+    8.53
+   ],
+   "by_timing": [
+    14.55,
+    8.04,
+    3.75
+   ],
+   "order": [
+    "Sell 2.9 FOAT Dec",
+    "Buy 2.6 FGBL Dec",
+    "€250 per bp"
+   ]
+  },
+  "OGBL options": {
+   "family": "OGBL options",
+   "name": "OGBL 124 call",
+   "rule": "front",
+   "mean": 3.4389514941717674,
+   "median": 0.0,
+   "p_lost": 0.7208,
+   "p_5x": 0.1907,
+   "p_10x": 0.1272,
+   "p95": 22.24531920617696,
+   "levels": {
+    "240": 2.14,
+    "300": 3.44,
+    "340": 3.91,
+    "400": 5.3
+   },
+   "wrong_mean": 1.32,
+   "by_f": [
+    1.99,
+    3.46,
+    4.89
+   ],
+   "by_timing": [
+    8.35,
+    1.43,
+    1.49
+   ],
+   "order": [
+    "Buy 43 OGBL 124.00 call 20/11/2026 (bid 0.21 / ask 0.23)",
+    "cost ≈ €9,991 now"
+   ]
+  },
+  "stocks": {
+   "family": "stocks",
+   "name": "Short CAC 40 future (FCE)",
+   "rule": "stop 12, add every +6 (lock 0%)",
+   "mean": 3.0029015340163494,
+   "median": 3.7772437502271377,
+   "p_lost": 0.3062,
+   "p_5x": 0.1768,
+   "p_10x": 0.0,
+   "p95": 5.939002924197298,
+   "levels": {
+    "240": 2.06,
+    "300": 3.0,
+    "340": 3.68,
+    "400": 4.57
+   },
+   "wrong_mean": 0.81,
+   "by_f": [
+    3.11,
+    3.0,
+    2.9
+   ],
+   "by_timing": [
+    3.92,
+    3.09,
+    2.2
+   ],
+   "order": [
+    "Short ≈ €83,333 notional (CAC 40 future (FCE))"
+   ]
+  },
+  "OOAT options": {
+   "family": "OOAT options",
+   "name": "OOAT 105 put",
+   "rule": "ladder",
+   "mean": 1.5390203774829907,
+   "median": 1.424379857323148,
+   "p_lost": 0.0,
+   "p_5x": 0.0004,
+   "p_10x": 0.0,
+   "p95": 2.9258989624445553,
+   "levels": {
+    "240": 1.14,
+    "300": 1.54,
+    "340": 1.83,
+    "400": 2.32
+   },
+   "wrong_mean": 0.41,
+   "by_f": [
+    1.93,
+    1.51,
+    1.18
+   ],
+   "by_timing": [
+    1.73,
+    1.55,
+    1.37
+   ],
+   "order": [
+    "Buy 2 OOAT 105.00 put 20/11/2026 (bid 0.58 / ask 0.67)",
+    "cost ≈ €1,345 now"
+   ]
+  }
+ },
+ "mixes_by_median": [
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "Short CAC 40 future (FCE) [stop 12, add every +6 (lock 0%)]",
+   "w_a": 0.75,
+   "mean": 7.0188552521246255,
+   "median": 11.18930769528697,
+   "p_lost": 0.2654,
+   "p_5x": 0.5386,
+   "p_10x": 0.5328,
+   "p95": 13.725903226761982,
+   "levels": {
+    "240": 2.83,
+    "300": 7.02,
+    "340": 9.99,
+    "400": 14.47
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "Short Amundi [stop 12, add every +12 (lock 0%)]",
+   "w_a": 0.75,
+   "mean": 6.980601320548276,
+   "median": 10.847192099097082,
+   "p_lost": 0.341,
+   "p_5x": 0.5387,
+   "p_10x": 0.5293,
+   "p95": 14.00491731572709,
+   "levels": {
+    "240": 2.8,
+    "300": 6.98,
+    "340": 9.93,
+    "400": 14.38
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "OOAT 105 put [ladder]",
+   "w_a": 0.75,
+   "mean": 6.652884962991286,
+   "median": 10.838670263505364,
+   "p_lost": 0.0719,
+   "p_5x": 0.5385,
+   "p_10x": 0.5289,
+   "p95": 13.09514106346621,
+   "levels": {
+    "240": 2.6,
+    "300": 6.65,
+    "340": 9.52,
+    "400": 13.91
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "Short Eiffage [stop 12, add every +12 (lock 0%)]",
+   "w_a": 0.75,
+   "mean": 7.003994475792759,
+   "median": 10.813159907638221,
+   "p_lost": 0.3674,
+   "p_5x": 0.5387,
+   "p_10x": 0.5296,
+   "p95": 14.233989046464199,
+   "levels": {
+    "240": 2.81,
+    "300": 7.0,
+    "340": 9.95,
+    "400": 14.4
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "Long FGBL [stop 40, add every +20 (lock 0%)]",
+   "w_a": 0.75,
+   "mean": 7.2676419413023625,
+   "median": 10.680412686660377,
+   "p_lost": 0.3013,
+   "p_5x": 0.5741,
+   "p_10x": 0.5284,
+   "p95": 14.71899471366512,
+   "levels": {
+    "240": 2.94,
+    "300": 7.27,
+    "340": 10.33,
+    "400": 14.99
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "OGBL 123.5 call [front]",
+   "w_a": 0.75,
+   "mean": 7.021186738906327,
+   "median": 10.650030055831014,
+   "p_lost": 0.3552,
+   "p_5x": 0.5426,
+   "p_10x": 0.5265,
+   "p95": 16.408060866969404,
+   "levels": {
+    "240": 2.81,
+    "300": 7.02,
+    "340": 9.91,
+    "400": 14.44
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "OGBL 124 call [front]",
+   "w_a": 0.75,
+   "mean": 7.12786774216348,
+   "median": 10.648535765661993,
+   "p_lost": 0.3741,
+   "p_5x": 0.5472,
+   "p_10x": 0.5273,
+   "p95": 17.244935667550617,
+   "levels": {
+    "240": 2.85,
+    "300": 7.13,
+    "340": 10.05,
+    "400": 14.66
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "Short FOAT [stop 40, add every +20 (lock 0%)]",
+   "w_a": 0.75,
+   "mean": 6.9831020422602945,
+   "median": 10.613540136455725,
+   "p_lost": 0.4332,
+   "p_5x": 0.5423,
+   "p_10x": 0.5262,
+   "p95": 16.015709517268565,
+   "levels": {
+    "240": 2.73,
+    "300": 6.98,
+    "340": 10.03,
+    "400": 14.72
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "Short CAC 40 future (FCE) [stop 12, add every +6 (lock 0%)]",
+   "w_a": 0.5,
+   "mean": 5.680204012755199,
+   "median": 7.838726836575627,
+   "p_lost": 0.264,
+   "p_5x": 0.5381,
+   "p_10x": 0.2582,
+   "p95": 10.74684470423716,
+   "levels": {
+    "240": 2.57,
+    "300": 5.68,
+    "340": 7.88,
+    "400": 11.17
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "OOAT 105 put [ladder]",
+   "w_a": 0.5,
+   "mean": 4.948263434488521,
+   "median": 7.528944811124559,
+   "p_lost": 0.0143,
+   "p_5x": 0.5377,
+   "p_10x": 0.0042,
+   "p95": 9.403287571972808,
+   "levels": {
+    "240": 2.11,
+    "300": 4.95,
+    "340": 6.96,
+    "400": 10.05
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "Long FGBL [stop 40, add every +20 (lock 0%)]",
+   "w_a": 0.5,
+   "mean": 6.177777391110674,
+   "median": 7.460502841326717,
+   "p_lost": 0.2988,
+   "p_5x": 0.6179,
+   "p_10x": 0.208,
+   "p95": 14.427798923050325,
+   "levels": {
+    "240": 2.8,
+    "300": 6.18,
+    "340": 8.56,
+    "400": 12.2
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "Short Amundi [stop 12, add every +12 (lock 0%)]",
+   "w_a": 0.5,
+   "mean": 5.603696149602501,
+   "median": 7.2471558097761,
+   "p_lost": 0.3403,
+   "p_5x": 0.5398,
+   "p_10x": 0.3241,
+   "p95": 11.426925371716022,
+   "levels": {
+    "240": 2.52,
+    "300": 5.6,
+    "340": 7.77,
+    "400": 10.99
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "OGBL 124 call [front]",
+   "w_a": 0.5,
+   "mean": 5.898228992832909,
+   "median": 7.224063068707858,
+   "p_lost": 0.3706,
+   "p_5x": 0.5666,
+   "p_10x": 0.1519,
+   "p95": 18.381974820670784,
+   "levels": {
+    "240": 2.61,
+    "300": 5.9,
+    "340": 8.0,
+    "400": 11.54
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "OGBL 123.5 call [front]",
+   "w_a": 0.5,
+   "mean": 5.684866986318605,
+   "median": 7.197318874462626,
+   "p_lost": 0.3496,
+   "p_5x": 0.5625,
+   "p_10x": 0.1527,
+   "p95": 16.51271009945766,
+   "levels": {
+    "240": 2.53,
+    "300": 5.68,
+    "340": 7.73,
+    "400": 11.1
+   }
+  },
+  {
+   "a": "Spread trade: short FOAT / long FGBL (DV01-neutral) [stop 40, add every +20 (lock 0%)]",
+   "b": "Short Eiffage [stop 12, add every +12 (lock 0%)]",
+   "w_a": 0.5,
+   "mean": 5.650482460091467,
+   "median": 7.192702053044586,
+   "p_lost": 0.3657,
+   "p_5x": 0.5417,
+   "p_10x": 0.345,
+   "p95": 11.8547542910727,
+   "levels": {
+    "240": 2.54,
+    "300": 5.65,
+    "340": 7.8,
+    "400": 11.03
+   }
+  }
+ ]
+}

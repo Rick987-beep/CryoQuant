@@ -16,14 +16,18 @@ from cryoquant.data import macro_store
 
 log = logging.getLogger(__name__)
 
-_MACRO_VENUES: frozenset[str] = frozenset({"fred", "manual", "cboe"})
+_MACRO_VENUES: frozenset[str] = frozenset({"fred", "manual", "cboe", "cnbc", "eurex"})
 
 # CBOE ingest series_id aliases for load_track (see data.ingest.ingest_macro).
 _CBOE_SERIES_ID: dict[str, str] = {
     "VIX": "VIX_CLOSE",
     "VX": "VX_FRONT_SETTLE",
     "VX_FRONT": "VX_FRONT_SETTLE",
+    "VX_TRADE": "VX_TRADE_SETTLE",
 }
+
+# Venues whose macro tracks are multi-column frames (not scalar series).
+_MACRO_FRAME_VENUES: frozenset[str] = frozenset({"eurex"})
 
 
 def is_ohlcv_symbol(symbol: Symbol) -> bool:
@@ -70,6 +74,8 @@ def load_track(
         return loader.load(symbol, tf, start, end)
 
     source, series_id = macro_source_and_id(symbol)
+    if source in _MACRO_FRAME_VENUES:
+        return macro_store.load_frame(source, series_id, start, end)
     return macro_store.load_series(source, series_id, start, end)
 
 

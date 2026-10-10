@@ -1,0 +1,42 @@
+# france_sovereign_stress — Phase 1 universe (spread + CAC; options later)
+# Ingest: python studies/france_sovereign_stress/run_phase1_data.py
+# Optional batch: cryoquant.data.ingest via symbols below
+
+french_equities:
+  timeframes: ["1d"]
+  start_daily: "2023-01-01"
+  symbols:
+    - yahoo:^FCHI
+    - yahoo:CS.PA
+    - yahoo:SCR.PA
+    - yahoo:ENGI.PA
+    - yahoo:DG.PA
+    - yahoo:FGR.PA
+    - yahoo:EN.PA
+    - yahoo:ADP.PA
+    - yahoo:ORA.PA
+    - yahoo:VIE.PA
+    - yahoo:URW.PA
+    - yahoo:LI.PA
+    - yahoo:GFC.PA
+    - yahoo:COV.PA
+    - yahoo:AMUN.PA
+    - yahoo:SPIE.PA
+    - yahoo:AF.PA
+    - yahoo:RNO.PA
+
+macro_cnbc:
+  symbols:
+    - cnbc:OAT10
+    - cnbc:BUND10
+    - cnbc:SPREAD_BP
+
+macro_eurex:
+  symbols:
+    - eurex:FOAT_FGBL_SETTLES
+
+macro_fred:
+  symbols:
+    - fred:FR10Y_LT
+    - fred:DE10Y_LT
+    - fred:IT10Y_LT

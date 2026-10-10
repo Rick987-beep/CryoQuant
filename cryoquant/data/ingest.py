@@ -184,8 +184,12 @@ def ingest_macro(
             s = fetch_series(series_id, start, end)
             macro_store.write_series(source, series_id, s, force=force)
         elif source == "cboe":
-            # Cash VIX index (default) or VX front-month futures continuous
-            if series_id in ("VX_FRONT", "VX", "VX_FRONT_SETTLE"):
+            # Cash VIX index (default) or VX futures continuous series
+            if series_id in ("VX_TRADE", "VX_TRADE_SETTLE"):
+                from cryoquant.data.sources.cboe_vx_futures import ingest_vx_trade
+
+                ingest_vx_trade(start, end, force=force)
+            elif series_id in ("VX_FRONT", "VX", "VX_FRONT_SETTLE"):
                 from cryoquant.data.sources.cboe_vx_futures import ingest_vx_front
 
                 ingest_vx_front(start, end, force=force)
@@ -199,6 +203,15 @@ def ingest_macro(
                         macro_store.write_series(
                             "cboe", f"VIX_{col.upper()}", vix_df[col], force=force
                         )
+        elif source == "cnbc":
+            from cryoquant.data.sources.cnbc_yields import ingest_oat_bund
+
+            # One fetch writes OAT10, BUND10, SPREAD_BP; any of those tickers triggers it.
+            ingest_oat_bund("1Y", force=force)
+        elif source == "eurex":
+            from cryoquant.data.sources.eurex_futures import ingest_settles
+
+            ingest_settles(force=force)
         else:
             log.error("FAIL %s — unknown macro venue %r", sym_str, source)
             return False

@@ -70,6 +70,11 @@ _ALIASES: dict[str, str] = {
     "NFCI":         "NFCI",            # Chicago Fed National Financial Conditions Index (weekly, 2010+)
     "NFCI_CREDIT":  "NFCICREDIT",      # NFCI credit sub-index (weekly, 2010+)
     "FIN_STRESS":   "STLFSI4",         # St. Louis Fed Financial Stress Index v4 (weekly, 2010+)
+
+    # Euro sovereign long-term government bond yields (monthly, OECD via FRED)
+    "FR10Y_LT":     "IRLTLT01FRM156N",  # France 10Y
+    "DE10Y_LT":     "IRLTLT01DEM156N",  # Germany 10Y
+    "IT10Y_LT":     "IRLTLT01ITM156N",  # Italy 10Y
 }
 
 

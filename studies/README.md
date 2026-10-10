@@ -41,6 +41,7 @@ Path A demos that are not studies live in [`scripts/`](../scripts/) and [`notebo
 | [`tudysho_calm_regime_chain/`](tudysho_calm_regime_chain/) | Active (Phase 1) | B | Parallel chain-settlement label refit (does not overwrite parent) |
 | [`tenx_thielen_scorecard/`](tenx_thielen_scorecard/) | Active | A (+ B-lite) | 10x Research / Markus Thielen prediction scorecard vs CryoQuant prices |
 | [`VIXStrategy/`](VIXStrategy/) | Active (Phase 0) | A | Daily CBOE VIX OHLC strategy; proxy/hypothesis TBD |
+| [`france_sovereign_stress/`](france_sovereign_stress/) | Active (Phases 0–5 done; explore report) | B | OAT–Bund FOAT/FGBL stress trade, v6 rebuild; options parked; pitch HTML deferred |
 
 ### Adhoc
 
@@ -73,6 +74,8 @@ Path A demos that are not studies live in [`scripts/`](../scripts/) and [`notebo
 | Extrusion / Parkinson metrics | `cryoquant.features.extrusion` |
 | Turbulence composite | `cryoquant.features.turbulence` |
 | Overnight calm score | `cryoquant.features.calm_score` |
+| CNBC FR/DE/IT 10Y yields | `cryoquant.data.sources.cnbc_yields` |
+| Eurex FOAT/FGBL settles | `cryoquant.data.sources.eurex_futures` |
 
 ### Ready when a second consumer appears
 

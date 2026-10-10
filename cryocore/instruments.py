@@ -165,6 +165,40 @@ _DEFAULT_INSTRUMENTS: list[Instrument] = [
     # VIX (CBOE — via macro_store, not OHLCV loader)
     Instrument(Symbol("cboe",  "VIX"),       "volatility", "USD", "nyse"),
     Instrument(Symbol("cboe",  "VX_FRONT"),  "volatility", "USD", "nyse"),  # continuous front VX
+    Instrument(Symbol("cboe",  "VX_TRADE"),  "volatility", "USD", "nyse"),  # DTE≥7 trade series
+
+    # CNBC sovereign yields (macro_store; unofficial chart API)
+    Instrument(Symbol("cnbc", "OAT10"), "macro", "EUR", "nyse", meta={"storage": "macro"}),
+    Instrument(Symbol("cnbc", "BUND10"), "macro", "EUR", "nyse", meta={"storage": "macro"}),
+    Instrument(Symbol("cnbc", "SPREAD_BP"), "macro", "EUR", "nyse", meta={"storage": "macro"}),
+
+    # Eurex bond futures settlements (macro_store frame FOAT_FGBL_SETTLES)
+    Instrument(Symbol("eurex", "FOAT_FGBL_SETTLES"), "macro", "EUR", "nyse", meta={"storage": "macro"}),
+
+    # FRED monthly long-term government bond yields (OECD)
+    Instrument(Symbol("fred", "FR10Y_LT"), "macro", "EUR", "nyse"),
+    Instrument(Symbol("fred", "DE10Y_LT"), "macro", "EUR", "nyse"),
+    Instrument(Symbol("fred", "IT10Y_LT"), "macro", "EUR", "nyse"),
+
+    # CAC 40 + French non-bank equities (france_sovereign_stress sleeve)
+    Instrument(Symbol("yahoo", "^FCHI"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "CS.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "SCR.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "ENGI.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "DG.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "FGR.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "EN.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "ADP.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "ORA.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "VIE.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "URW.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "LI.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "GFC.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "COV.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "AMUN.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "SPIE.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "AF.PA"), "equity", "EUR", "nyse"),
+    Instrument(Symbol("yahoo", "RNO.PA"), "equity", "EUR", "nyse"),
 ]
 
 _INSTRUMENT_REGISTRY: dict[Symbol, Instrument] = {i.symbol: i for i in _DEFAULT_INSTRUMENTS}

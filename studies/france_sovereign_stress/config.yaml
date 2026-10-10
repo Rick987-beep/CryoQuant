@@ -1,0 +1,51 @@
+# france_sovereign_stress — v6 study config
+study_id: france_sovereign_stress
+description: >
+  OAT–Bund 10Y spread stress trade. Simulate right-world paths to 240/300/340/400 bp and wrong-world paths to
+  1 Jul 2027; score futures (FOAT/FGBL spread, outright legs, CAC 40 / French non-bank shorts) and Eurex options.
+
+horizon:
+  end: "2027-07-01"
+  calendar: business_days
+
+view:
+  levels_bp: [240, 300, 340, 400]
+  optimise_bp: 300
+  scenario_odds:            # subjective, from the 5 Oct 2026 proposal; reported, not used for EV
+    relief: 0.15            # ~85 bp
+    grind: 0.50             # 140–170 bp
+    stress: 0.30            # 200–300 bp
+    contested: 0.05         # > 300 bp
+
+budget_eur: 10000
+
+simulation:
+  n_paths: 10000
+  seed: 11
+  event_bdays: 15
+  event_vol_mult: 2.0
+  bund_flight_share: [0.10, 0.70]
+  noise: {dist: student_t, dof: 4}
+  vol_window_bdays: 126
+
+instruments:                # v5 calibration values; v6 re-derives them
+  FOAT: {venue: eurex, nominal: 100000, tick: 0.01, tick_eur: 10, eur_per_bp_v5: 87.58}
+  FGBL: {venue: eurex, nominal: 100000, tick: 0.01, tick_eur: 10, eur_per_bp_v5: 96.57}
+  FCE:  {venue: euronext, eur_per_point: 10}
+  MFC:  {venue: euronext, eur_per_point: 1}
+
+costs:
+  fee_per_contract_eur: 2.35
+  half_tick_per_side: true
+  stop_slippage_bp: 1.0
+  gap_fill: half_gap        # v5; v6 should make daily-close execution the baseline
+  stock_cost_pa: 0.035
+  cac_future_carry_pa: 0.01
+
+rules:
+  spread_cap_foat: 20
+  recommended: {stop_bp: 40, add_every_bp: 20, keep: 0.0}
+
+reference:
+  v5_dir: input/v5_reference
+  stamp: "2026-10-09T1456"
