@@ -6,8 +6,13 @@
 **Hard rule:** research only. No orders, no broker connections from this study.
 
 **v6 status (10 Oct 2026):** Phases 0–5 complete and reconciled in [`RESULTS.md`](RESULTS.md).
-Phase 6 pitch HTML deferred; use [`EXPLORE.md`](EXPLORE.md) / [`explore.html`](explore.html).
-See [`README.md`](README.md) for run commands.
+Phase 6 pitch HTML deferred; use [`explore_interactive.html`](explore_interactive.html)
+(or [`EXPLORE.md`](EXPLORE.md) / [`explore.html`](explore.html)). See [`README.md`](README.md).
+
+**12 Oct 2026:** rerun on live snapshot `2026-10-12T0941` (entry 137.34 bp, history to
+9 Oct). The 9 Oct outputs are kept in `archive/2026-10-09T1456/`; RESULTS.md carries a
+change table against them. §4 targets below remain the reference-replay gates
+(`FSS_SNAPSHOT=reference`).
 
 ## 1. The trade idea in one paragraph
 
@@ -79,7 +84,8 @@ inputs and assumptions, **or** document each difference with its cause.
    whole contracts (3/3, 4/4, 6/6, 9/8, 14/13, 20/18) and the legs are not exactly DV01-neutral. Model integer
    contracts per leg and the residual Bund exposure.
 4. **Hard-coded spread in the report ladder.** `build_report.spread_ladder` and `eq_spread` use `138.0` instead of
-   the snapshot spread. Fine for 9 Oct, wrong after any refresh.
+   the snapshot spread. Fine for 9 Oct, wrong after any refresh. *v6: fixed. The ladder starts at the active
+   snapshot's entry spread (`MarketInputs.s0_report`).*
 5. **Execution model.** v5 assumes a resting stop (fill at stop − 1 bp, half the gap when a close jumps through).
    IBKR cannot hold a stop on an OAT–Bund spread (no Eurex order book for it), so the realistic baseline is a
    **daily-close check**; maintenance.py showed the difference is small (11.65× vs 11.67×). Make daily close the

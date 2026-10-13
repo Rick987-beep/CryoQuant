@@ -1,0 +1,27 @@
+{
+  "fetched_at": "2026-10-12T09:41:38.000+0200",
+  "yields": {
+    "oat10": 4.8303,
+    "bund10": 3.4569,
+    "time": "2026-10-12T09:41:38.000+0200",
+    "source": "CNBC FR10Y-FR / DE10Y-DE"
+  },
+  "futures": {
+    "FOAT": {
+      "settle_date": "20261009",
+      "source": "Eurex overallstatistics",
+      "front_month": 20261208,
+      "front_settle": 108.97999999999999,
+      "next_settle": 108.22999999999999
+    },
+    "FGBL": {
+      "settle_date": "20261009",
+      "source": "Eurex overallstatistics",
+      "front_month": 20261208,
+      "front_settle": 120.84,
+      "next_settle": 120.72999999999999
+    }
+  },
+  "chains": {},
+  "note": "Option chains not pulled: options are parked in v6."
+}

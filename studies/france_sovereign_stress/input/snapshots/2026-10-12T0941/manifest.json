@@ -1,0 +1,67 @@
+{
+  "stamp": "2026-10-12T0941",
+  "fetched_at_utc": "2026-10-12T07:41:39+00:00",
+  "reference_stamp": "2026-10-09T1456",
+  "history_cutoff": "2026-10-09",
+  "merge_rule": "frozen v5 rows before the reference date + fresh business-day rows up to the cutoff; today's partial session excluded",
+  "files": {
+    "yields_daily.csv": {
+      "source": "CNBC chart 1Y daily",
+      "frozen_rows": 519,
+      "fresh_rows_added": 1,
+      "first_added": "2026-10-09",
+      "last_date": "2026-10-09",
+      "overlap_rows": 517,
+      "overlap_max_abs_diff": {
+        "oat10": 0.0041,
+        "bund10": 0.0,
+        "spread_bp": 0.41
+      }
+    },
+    "eurex_settles.csv": {
+      "source": "Eurex overallstatistics",
+      "frozen_rows": 20,
+      "fresh_rows_added": 1,
+      "first_added": "2026-10-09",
+      "last_date": "2026-10-09",
+      "overlap_rows": 19,
+      "overlap_max_abs_diff": {
+        "FOAT_front": 0.0,
+        "FOAT_next": 0.0,
+        "FGBL_front": 0.0,
+        "FGBL_next": 0.0
+      }
+    },
+    "stocks_daily.csv": {
+      "source": "Yahoo 1d close",
+      "frozen_rows": 766,
+      "fresh_rows_added": 1,
+      "first_added": "2026-10-09",
+      "last_date": "2026-10-09",
+      "overlap_rows": 10,
+      "overlap_max_abs_diff": {
+        "^FCHI": 0.0
+      }
+    },
+    "yields_weekly.csv": {
+      "source": "copied from v5 reference (not used by the simulation)"
+    },
+    "fred_10y_monthly.csv": {
+      "source": "copied from v5 reference (not used by the simulation)"
+    },
+    "eurex_settles_recent.csv": {
+      "source": "copied from v5 reference (not used by the simulation)"
+    }
+  },
+  "quote": {
+    "source": "CNBC FR10Y-FR / DE10Y-DE",
+    "oat10": 4.8303,
+    "oat10_time": "2026-10-12T09:41:38.000+0200",
+    "oat10_prev_close": 4.860600000000001,
+    "bund10": 3.4569,
+    "bund10_time": "2026-10-12T09:41:39.000+0200",
+    "bund10_prev_close": 3.4855,
+    "time": "2026-10-12T09:41:38.000+0200",
+    "spread_bp": 137.34000000000003
+  }
+}

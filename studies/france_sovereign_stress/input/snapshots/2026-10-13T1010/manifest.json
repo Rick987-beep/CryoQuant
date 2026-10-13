@@ -1,0 +1,167 @@
+{
+  "stamp": "2026-10-13T1010",
+  "fetched_at_utc": "2026-10-13T08:10:11+00:00",
+  "reference_stamp": "2026-10-09T1456",
+  "history_cutoff": "2026-10-12",
+  "merge_rule": "frozen v5 rows before the reference date + fresh business-day rows up to the cutoff; today's partial session excluded",
+  "files": {
+    "yields_daily.csv": {
+      "source": "CNBC chart 1Y daily",
+      "frozen_rows": 519,
+      "fresh_rows_added": 2,
+      "first_added": "2026-10-09",
+      "last_date": "2026-10-12",
+      "overlap_rows": 517,
+      "overlap_max_abs_diff": {
+        "oat10": 0.0,
+        "bund10": 0.0025,
+        "spread_bp": 0.25
+      }
+    },
+    "eurex_settles.csv": {
+      "source": "Eurex overallstatistics",
+      "frozen_rows": 20,
+      "fresh_rows_added": 2,
+      "first_added": "2026-10-09",
+      "last_date": "2026-10-12",
+      "overlap_rows": 18,
+      "overlap_max_abs_diff": {
+        "FOAT_front": 0.0,
+        "FOAT_next": 0.0,
+        "FGBL_front": 0.0,
+        "FGBL_next": 0.0
+      }
+    },
+    "stocks_daily.csv": {
+      "source": "Yahoo 1d close",
+      "bank_tickers": [
+        "BNP.PA",
+        "GLE.PA",
+        "ACA.PA",
+        "EXV1.DE"
+      ],
+      "frozen_rows": 766,
+      "fresh_rows_added": 2,
+      "first_added": "2026-10-09",
+      "last_date": "2026-10-12",
+      "overlap_rows": 10,
+      "overlap_max_abs_diff": {
+        "^FCHI": 0.0
+      }
+    },
+    "banks_daily_long.csv": {
+      "source": "Yahoo 1d close from 2010",
+      "columns": [
+        "^FCHI",
+        "BNP.PA",
+        "GLE.PA",
+        "ACA.PA",
+        "EXV1.DE"
+      ],
+      "rows": 4293,
+      "first": "2010-01-04",
+      "last": "2026-10-12"
+    },
+    "yields_weekly.csv": {
+      "source": "copied from v5 reference (not used by the simulation)"
+    },
+    "fred_10y_monthly.csv": {
+      "source": "copied from v5 reference (not used by the simulation)"
+    },
+    "eurex_settles_recent.csv": {
+      "source": "copied from v5 reference (not used by the simulation)"
+    },
+    "bond_option_chains": {
+      "source": "Eurex Playwright scrape",
+      "summary": {
+        "OOAT": [
+          {
+            "expiry": "23/10/2026",
+            "ok": true,
+            "n_put": 74,
+            "n_call": 74,
+            "two_sided": 86,
+            "median_half_spread": 0.07
+          },
+          {
+            "expiry": "20/11/2026",
+            "ok": true,
+            "n_put": 82,
+            "n_call": 82,
+            "two_sided": 126,
+            "median_half_spread": 0.08499999999999996
+          },
+          {
+            "expiry": "23/12/2026",
+            "ok": true,
+            "n_put": 64,
+            "n_call": 64,
+            "two_sided": 0,
+            "median_half_spread": null
+          },
+          {
+            "expiry": "19/02/2027",
+            "ok": true,
+            "n_put": 87,
+            "n_call": 87,
+            "two_sided": 0,
+            "median_half_spread": null
+          }
+        ],
+        "OGBL": [
+          {
+            "expiry": "23/10/2026",
+            "ok": true,
+            "n_put": 54,
+            "n_call": 54,
+            "two_sided": 30,
+            "median_half_spread": 0.0050000000000000044
+          },
+          {
+            "expiry": "20/11/2026",
+            "ok": true,
+            "n_put": 63,
+            "n_call": 63,
+            "two_sided": 62,
+            "median_half_spread": 0.010000000000000002
+          },
+          {
+            "expiry": "23/12/2026",
+            "ok": true,
+            "n_put": 45,
+            "n_call": 45,
+            "two_sided": 65,
+            "median_half_spread": 0.014999999999999986
+          },
+          {
+            "expiry": "19/02/2027",
+            "ok": true,
+            "n_put": 47,
+            "n_call": 47,
+            "two_sided": 68,
+            "median_half_spread": 0.020000000000000018
+          }
+        ]
+      }
+    },
+    "bank_option_chains": {
+      "source": "Eurex Playwright scrape (equity options)",
+      "summary": {
+        "BNP": [],
+        "GLE": [],
+        "ACA": []
+      }
+    }
+  },
+  "quote": {
+    "source": "CNBC FR10Y-FR / DE10Y-DE",
+    "oat10": 4.8458,
+    "oat10_time": "2026-10-13T10:10:10.000+0200",
+    "oat10_prev_close": 4.8986,
+    "bund10": 3.4386,
+    "bund10_time": "2026-10-13T10:10:10.000+0200",
+    "bund10_prev_close": 3.4765,
+    "time": "2026-10-13T10:10:10.000+0200",
+    "spread_bp": 140.71999999999997
+  }
+}

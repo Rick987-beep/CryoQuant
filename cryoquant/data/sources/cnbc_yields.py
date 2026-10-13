@@ -4,11 +4,19 @@ Unofficial public endpoint used by the france_sovereign_stress study (v5/v6)::
 
     https://ts-api.cnbc.com/harmony/app/charts/{rng}.json?symbol={sym}
 
+Live quotes come from the CNBC quote web service::
+
+    https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol
+
 Public interface::
 
     fetch_yield(symbol, rng) -> pd.Series
     fetch_oat_bund(rng) -> pd.DataFrame   # oat10, bund10, spread_bp
+    fetch_oat_bund_quote() -> dict        # live oat10, bund10, times, previous closes
     ingest_oat_bund(rng, *, force) -> pd.DataFrame
+
+Daily chart bars can include a stale weekend bar; callers that need business
+days should drop Saturday/Sunday rows.
 """
 from __future__ import annotations
 
@@ -21,6 +29,7 @@ import requests
 log = logging.getLogger(__name__)
 
 _CHART_URL = "https://ts-api.cnbc.com/harmony/app/charts/{rng}.json?symbol={sym}"
+_QUOTE_URL = "https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol"
 _UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -78,6 +87,42 @@ def fetch_oat_bund(
     df = pd.DataFrame({"oat10": oat, "bund10": bund}).dropna()
     df["spread_bp"] = (df["oat10"] - df["bund10"]) * 100.0
     return df
+
+
+def _pct(text: str) -> float:
+    return float(str(text).replace("%", "").replace("+", "").strip())
+
+
+def fetch_oat_bund_quote(*, session: requests.Session | None = None) -> dict:
+    """Live FR10Y / DE10Y quotes (%) with quote times and previous closes."""
+    sess = session or requests.Session()
+    syms = {"oat10": _SYMBOLS["OAT10"], "bund10": _SYMBOLS["BUND10"]}
+    params = {
+        "symbols": "|".join(syms.values()),
+        "requestMethod": "itv",
+        "noform": "1",
+        "partnerId": "2",
+        "fund": "1",
+        "exthrs": "1",
+        "output": "json",
+        "events": "1",
+    }
+    r = sess.get(_QUOTE_URL, params=params, headers={"User-Agent": _UA}, timeout=_TIMEOUT)
+    r.raise_for_status()
+    quotes = r.json()["FormattedQuoteResult"]["FormattedQuote"]
+    by_sym = {q["symbol"]: q for q in quotes}
+    out: dict = {"source": "CNBC FR10Y-FR / DE10Y-DE"}
+    for key, sym in syms.items():
+        q = by_sym.get(sym)
+        if q is None:
+            raise RuntimeError(f"CNBC quote missing {sym!r}")
+        last = _pct(q["last"])
+        out[key] = last
+        out[f"{key}_time"] = q.get("last_time")
+        out[f"{key}_prev_close"] = last - _pct(q.get("change", "0"))
+    out["time"] = out["oat10_time"]
+    out["spread_bp"] = (out["oat10"] - out["bund10"]) * 100.0
+    return out
 
 
 def ingest_oat_bund(

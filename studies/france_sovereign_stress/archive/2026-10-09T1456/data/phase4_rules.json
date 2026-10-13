@@ -1,0 +1,191 @@
+{
+  "stamp": "2026-10-09T1456",
+  "s0_report": 138.0,
+  "s0_snapshot": 138.00000000000003,
+  "rule": "stop 40, add every +20 (lock 0%)",
+  "execution_default": "daily_close",
+  "straight_line": {
+    "finals": {
+      "240": 76563.45450397064,
+      "300": 181663.64582602956,
+      "340": 251730.4400407355,
+      "400": 356830.63136279443
+    },
+    "vs_v5": {
+      "240": {
+        "v6": 76563.45450397064,
+        "v5": 76563,
+        "diff": 0.45450397064269055,
+        "ok": true
+      },
+      "300": {
+        "v6": 181663.64582602956,
+        "v5": 181664,
+        "diff": -0.3541739704378415,
+        "ok": true
+      },
+      "340": {
+        "v6": 251730.4400407355,
+        "v5": 251730,
+        "diff": 0.4400407354987692,
+        "ok": true
+      },
+      "400": {
+        "v6": 356830.63136279443,
+        "v5": 356831,
+        "diff": -0.3686372055672109,
+        "ok": true
+      }
+    },
+    "ladder_rows": [
+      {
+        "step": "Entry",
+        "spread_bp": 138.0,
+        "delta_bp": 0.0,
+        "equity": 10000.0,
+        "foat": 3,
+        "fgbl": 3
+      },
+      {
+        "step": "Add 1",
+        "spread_bp": 158.0,
+        "delta_bp": 20.0,
+        "equity": 15255.009566102946,
+        "foat": 4,
+        "fgbl": 4
+      },
+      {
+        "step": "Add 2",
+        "spread_bp": 178.0,
+        "delta_bp": 40.0,
+        "equity": 22261.688987573543,
+        "foat": 6,
+        "fgbl": 6
+      },
+      {
+        "step": "Add 3",
+        "spread_bp": 198.0,
+        "delta_bp": 60.0,
+        "equity": 32771.70811977943,
+        "foat": 9,
+        "fgbl": 8
+      },
+      {
+        "step": "Add 4",
+        "spread_bp": 218.0,
+        "delta_bp": 80.0,
+        "equity": 48536.73681808827,
+        "foat": 14,
+        "fgbl": 13
+      },
+      {
+        "step": "Add 5",
+        "spread_bp": 238.0,
+        "delta_bp": 100.0,
+        "equity": 73060.11479323535,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 6",
+        "spread_bp": 258.0,
+        "delta_bp": 120.0,
+        "equity": 108093.51190058832,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 7",
+        "spread_bp": 278.0,
+        "delta_bp": 140.0,
+        "equity": 143126.90900794129,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 8",
+        "spread_bp": 298.0,
+        "delta_bp": 160.0,
+        "equity": 178160.30611529425,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 9",
+        "spread_bp": 318.0,
+        "delta_bp": 180.0,
+        "equity": 213193.70322264722,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 10",
+        "spread_bp": 338.0,
+        "delta_bp": 200.0,
+        "equity": 248227.1003300002,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 11",
+        "spread_bp": 358.0,
+        "delta_bp": 220.0,
+        "equity": 283260.4974373532,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 12",
+        "spread_bp": 378.0,
+        "delta_bp": 240.0,
+        "equity": 318293.89454470616,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 13",
+        "spread_bp": 398.0,
+        "delta_bp": 260.0,
+        "equity": 353327.2916520591,
+        "foat": 20,
+        "fgbl": 18
+      }
+    ]
+  },
+  "mc_smoke": {
+    "spread_continuous_daily_close": {
+      "n": 2000,
+      "units0": 250.0,
+      "mean_x": 11.57809470186987,
+      "median_x": 15.211328877516532,
+      "p_lost": 0.2575,
+      "p_ge_10x": 0.742,
+      "wrong_mean_x": 0.5234663439984398
+    },
+    "spread_continuous_resting_stop": {
+      "n": 2000,
+      "units0": 250.0,
+      "mean_x": 11.59431123911286,
+      "median_x": 15.214279262226711,
+      "p_lost": 0.2575,
+      "p_ge_10x": 0.742,
+      "wrong_mean_x": 0.5548839743394074
+    },
+    "spread_integer_daily_close": {
+      "n": 2000,
+      "mean_x": 11.74721985290568,
+      "median_x": 15.461433876046385,
+      "p_lost": 0.249,
+      "p_ge_10x": 0.7415
+    },
+    "cac_continuous_daily_close": {
+      "n": 2000,
+      "mean_x": 3.4204833520686475,
+      "median_x": 3.9960832412914336,
+      "p_lost": 0.2125
+    }
+  },
+  "problems": [],
+  "ok": true,
+  "note": "Full 10k-path v5 mean reconcile is Phase 5; smoke uses --n paths."
+}

@@ -1,0 +1,197 @@
+{
+  "stamp": "2026-10-12T0941",
+  "start": "2026-10-12",
+  "s0": 137.34,
+  "s0_report": 137.3,
+  "quote_time": "2026-10-12T09:41:38.000+0200",
+  "reference_run": false,
+  "history_end": "2026-10-09",
+  "settles_end": "2026-10-09",
+  "s0_snapshot": 137.34000000000003,
+  "rule": "stop 40, add every +20 (lock 0%)",
+  "execution_default": "daily_close",
+  "straight_line": {
+    "finals": {
+      "240": 78359.22243123197,
+      "300": 184342.5130222893,
+      "340": 254998.04008299418,
+      "400": 360981.33067405154
+    },
+    "vs_v5": {
+      "240": {
+        "v6": 78359.22243123197,
+        "v5": 76563,
+        "diff": 1796.222431231974,
+        "ok": null
+      },
+      "300": {
+        "v6": 184342.5130222893,
+        "v5": 181664,
+        "diff": 2678.5130222892913,
+        "ok": null
+      },
+      "340": {
+        "v6": 254998.04008299418,
+        "v5": 251730,
+        "diff": 3268.040082994179,
+        "ok": null
+      },
+      "400": {
+        "v6": 360981.33067405154,
+        "v5": 356831,
+        "diff": 4150.33067405154,
+        "ok": null
+      }
+    },
+    "ladder_rows": [
+      {
+        "step": "Entry",
+        "spread_bp": 137.3,
+        "delta_bp": 0.0,
+        "equity": 10000.0,
+        "foat": 3,
+        "fgbl": 3
+      },
+      {
+        "step": "Add 1",
+        "spread_bp": 157.3,
+        "delta_bp": 20.0,
+        "equity": 15299.164529552867,
+        "foat": 4,
+        "fgbl": 4
+      },
+      {
+        "step": "Add 2",
+        "spread_bp": 177.3,
+        "delta_bp": 40.0,
+        "equity": 22364.717235623357,
+        "foat": 6,
+        "fgbl": 6
+      },
+      {
+        "step": "Add 3",
+        "spread_bp": 197.3,
+        "delta_bp": 60.0,
+        "equity": 32963.046294729094,
+        "foat": 9,
+        "fgbl": 8
+      },
+      {
+        "step": "Add 4",
+        "spread_bp": 217.3,
+        "delta_bp": 80.0,
+        "equity": 48860.5398833877,
+        "foat": 14,
+        "fgbl": 13
+      },
+      {
+        "step": "Add 5",
+        "spread_bp": 237.3,
+        "delta_bp": 100.0,
+        "equity": 73589.97435463441,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 6",
+        "spread_bp": 257.3,
+        "delta_bp": 120.0,
+        "equity": 108917.73788498685,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 7",
+        "spread_bp": 277.3,
+        "delta_bp": 140.0,
+        "equity": 144245.5014153393,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 8",
+        "spread_bp": 297.3,
+        "delta_bp": 160.0,
+        "equity": 179573.26494569174,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 9",
+        "spread_bp": 317.3,
+        "delta_bp": 180.0,
+        "equity": 214901.0284760442,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 10",
+        "spread_bp": 337.3,
+        "delta_bp": 200.0,
+        "equity": 250228.79200639663,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 11",
+        "spread_bp": 357.3,
+        "delta_bp": 220.0,
+        "equity": 285556.5555367491,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 12",
+        "spread_bp": 377.3,
+        "delta_bp": 240.0,
+        "equity": 320884.3190671015,
+        "foat": 20,
+        "fgbl": 18
+      },
+      {
+        "step": "Add 13",
+        "spread_bp": 397.3,
+        "delta_bp": 260.0,
+        "equity": 356212.08259745396,
+        "foat": 20,
+        "fgbl": 18
+      }
+    ]
+  },
+  "mc_smoke": {
+    "spread_continuous_daily_close": {
+      "n": 2000,
+      "units0": 250.0,
+      "mean_x": 11.723252433403504,
+      "median_x": 15.27548322830057,
+      "p_lost": 0.253,
+      "p_ge_10x": 0.747,
+      "wrong_mean_x": 0.5227672877251226
+    },
+    "spread_continuous_resting_stop": {
+      "n": 2000,
+      "units0": 250.0,
+      "mean_x": 11.737330103197444,
+      "median_x": 15.27548322830057,
+      "p_lost": 0.253,
+      "p_ge_10x": 0.747,
+      "wrong_mean_x": 0.5544944802709898
+    },
+    "spread_integer_daily_close": {
+      "n": 2000,
+      "mean_x": 11.911163631950371,
+      "median_x": 15.529160594767088,
+      "p_lost": 0.243,
+      "p_ge_10x": 0.747
+    },
+    "cac_continuous_daily_close": {
+      "n": 2000,
+      "mean_x": 3.4890990990002058,
+      "median_x": 4.050122805895096,
+      "p_lost": 0.1985
+    }
+  },
+  "problems": [],
+  "ok": true,
+  "note": "Full 10k-path v5 mean reconcile is Phase 5; smoke uses --n paths."
+}

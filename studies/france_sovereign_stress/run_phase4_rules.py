@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -17,13 +16,7 @@ sys.path.insert(0, str(STUDY_DIR))
 
 import numpy as np
 
-from src.calibrate import calibrate_futures, calibrate_vol, stock_betas
-from src.data.reference import (
-    load_eurex_settles,
-    load_eurex_snapshot,
-    load_stocks_daily,
-    load_yields_daily,
-)
+from src.inputs import load_market_inputs
 from src.paths import data_dir, load_config
 from src.rules import (
     Rule,
@@ -45,13 +38,8 @@ def main() -> int:
     args = ap.parse_args()
 
     cfg = load_config()
-    stamp = cfg["reference"]["stamp"]
-    s0 = (
-        float(load_eurex_snapshot(stamp)["yields"]["oat10"])
-        - float(load_eurex_snapshot(stamp)["yields"]["bund10"])
-    ) * 100.0
-    # Use rounded 138.0 for straight-line parity with v5 report
-    s0_report = 138.0
+    mi = load_market_inputs(cfg)
+    s0, s0_report = mi.s0, mi.s0_report
     levels = [float(x) for x in cfg["view"]["levels_bp"]]
     budget = float(cfg["budget_eur"])
     stop = float(cfg["rules"]["recommended"]["stop_bp"])
@@ -59,7 +47,7 @@ def main() -> int:
     keep = float(cfg["rules"]["recommended"]["keep"])
     rule = Rule(stop, add, keep)
 
-    fc = calibrate_futures(load_eurex_settles(), load_yields_daily())
+    fc = mi.fc
     ladder = straight_line_spread_ladder(
         s0=s0_report,
         eur_foat=fc.eur_per_bp["FOAT"],
@@ -80,16 +68,17 @@ def main() -> int:
         eq = ladder["finals"][L]
         target = V5_STRAIGHT[int(L)]
         diff = eq - target
-        ok = abs(diff) < 1.0
+        # v5 targets are a hard check only when replaying the v5 inputs
+        ok = abs(diff) < 1.0 if mi.reference else None
         straight_cmp[str(int(L))] = {
             "v6": eq,
             "v5": target,
             "diff": diff,
             "ok": ok,
         }
-        flag = "OK" if ok else "FAIL"
+        flag = {True: "OK", False: "FAIL", None: "info"}[ok]
         print(f"  [{flag}] {int(L)} bp → €{eq:,.0f}  (v5 €{target:,})  diff={diff:+.2f}")
-        if not ok:
+        if ok is False:
             problems.append(f"straight-line {L}: {eq} vs {target}")
 
     print("Ladder contract sizes:")
@@ -100,7 +89,7 @@ def main() -> int:
         )
 
     # MC smoke: continuous daily_close vs resting; integer daily_close
-    vol = calibrate_vol(load_yields_daily(), window=int(cfg["simulation"]["vol_window_bdays"]))
+    vol = mi.vol
     scfg = ScenarioConfig.from_study_config(cfg)
     scfg = ScenarioConfig(
         n_paths=args.n,
@@ -111,7 +100,7 @@ def main() -> int:
         dof=scfg.dof,
         end=scfg.end,
     )
-    start = date.fromisoformat(stamp.split("T", 1)[0])
+    start = mi.start
     worlds = simulate_worlds(vol, s0=s0, start=start, levels=levels, cfg=scfg)
     opt = float(cfg["view"]["optimise_bp"])
 
@@ -162,7 +151,7 @@ def main() -> int:
         f"lost={mc['spread_integer_daily_close']['p_lost']:.1%}"
     )
 
-    beta = stock_betas(load_stocks_daily(), load_yields_daily(), tickers=["^FCHI"])["^FCHI"]
+    beta = mi.beta_cac
     cac = build_cac_sleeve(worlds[opt], beta, carry_pa=float(cfg["costs"]["cac_future_carry_pa"]))
     eq_c, _ = run_continuous(cac, worlds[opt], Rule(12, 6, 0.0), budget, execution="daily_close")
     mult_c = eq_c / budget
@@ -180,7 +169,7 @@ def main() -> int:
 
     # Note: full n=10k reconcile vs HANDOVER 11.67× is Phase 5
     out = {
-        "stamp": stamp,
+        **mi.meta(),
         "s0_report": s0_report,
         "s0_snapshot": s0,
         "rule": rule.text,
@@ -203,7 +192,7 @@ def main() -> int:
         for p in problems:
             print(f"  - {p}")
         return 1
-    print("Phase 4 OK — straight-line targets matched.")
+    print("Phase 4 OK — straight-line targets matched." if mi.reference else "Phase 4 OK.")
     return 0
 
 

@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Phase 5: full evaluation vs HANDOVER §4; write RESULTS.md + data/phase5_evaluate.json."""
+"""Phase 5: full evaluation; write RESULTS.md + data/phase5_evaluate.json.
+
+Replaying the v5 reference, the HANDOVER §4 rows are pass/fail gates. On a
+fresh snapshot they are informational, and RESULTS.md leads with the change
+against the archived reference run (``archive/<reference stamp>/``).
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-from datetime import date
 from pathlib import Path
 
 STUDY_DIR = Path(__file__).resolve().parent
@@ -14,15 +18,7 @@ sys.path.insert(0, str(STUDY_DIR))
 
 import numpy as np
 
-from src.calibrate import calibrate_futures, calibrate_vol, live_spread_pnl, stock_betas
-from src.data.reference import (
-    load_eurex_settles,
-    load_eurex_snapshot,
-    load_stocks_daily,
-    load_yields_daily,
-)
 from src.evaluate import (
-    calmer_vol,
     evaluate_cac,
     evaluate_spread_levels,
     mix_multiples,
@@ -32,7 +28,9 @@ from src.evaluate import (
     scale_vol,
     tercile_means,
 )
-from src.paths import ANALYSIS_ROOT, data_dir, load_config
+from src.inputs import load_market_inputs
+from src.margin import margin_from_config
+from src.paths import ANALYSIS_ROOT, archive_dir, data_dir, load_config, reference_stamp
 from src.rules import (
     Rule,
     build_cac_sleeve,
@@ -53,14 +51,30 @@ def _fmt_pct(x: float) -> str:
 
 def _write_results_md(path: Path, payload: dict) -> None:
     rows = payload["reconcile"]
+    ref = payload["reference_run"]
     lines = [
         "# RESULTS — france_sovereign_stress (v6 Phase 5)",
         "",
-        f"Snapshot `{payload['stamp']}` · budget €{payload['budget']:,.0f} · "
-        f"n={payload['n_paths']} · seed={payload['seed']} · "
+        f"Snapshot `{payload['stamp']}` · start {payload['start']} · "
+        f"entry spread {payload['s0']:.2f} bp (quote {payload['quote_time']}) · "
+        f"calibration history to {payload['history_end']} · "
+        f"budget €{payload['budget']:,.0f} · n={payload['n_paths']} · seed={payload['seed']} · "
         f"execution default `{payload['execution_default']}` · common random numbers.",
         "",
-        "## HANDOVER §4 reconciliation",
+    ]
+    change = payload.get("change_vs_reference")
+    if change:
+        lines += [
+            f"## Change vs the {change['reference_stamp']} run",
+            "",
+            f"| Item | {change['reference_stamp']} | {payload['stamp']} | Change |",
+            "|------|-----:|-----:|-------:|",
+        ]
+        for r in change["rows"]:
+            lines.append(f"| {r['item']} | {r['ref']} | {r['new']} | {r['delta']} |")
+        lines += [""]
+    lines += [
+        "## HANDOVER §4 reconciliation" + ("" if ref else " (informational on a fresh snapshot)"),
         "",
         "| Item | v5 | v6 | Diff / cause |",
         "|------|----|----|--------------|",
@@ -84,7 +98,9 @@ def _write_results_md(path: Path, payload: dict) -> None:
         f"median {_fmt_x(payload['primary']['at_300']['median'])}, "
         f"lost {_fmt_pct(payload['primary']['at_300']['p_lost'])}, "
         f"≥10× {_fmt_pct(payload['primary']['at_300']['p_10x'])}",
-        f"- Wrong world: {_fmt_x(payload['primary']['wrong']['mean'])}",
+        f"- Wrong world: mean {_fmt_x(payload['primary']['wrong']['mean'])}, "
+        f"median {_fmt_x(payload['primary']['wrong']['median'])}, "
+        f"lost {_fmt_pct(payload['primary']['wrong']['p_lost'])}",
         f"- Integer contracts @ 300: mean {_fmt_x(payload['integer_300']['mean'])}, "
         f"median {_fmt_x(payload['integer_300']['median'])}",
         "",
@@ -93,6 +109,26 @@ def _write_results_md(path: Path, payload: dict) -> None:
     ]
     for name, block in payload["sensitivities"].items():
         lines.append(f"- **{name}**: {block['summary']}")
+    margin = payload.get("margin") or {}
+    if margin:
+        lines += ["", "## Sizing and initial margin", ""]
+        lines.append(
+            f"Additive overnight IM (IBKR Europe, as of {margin.get('asof', 'n/a')}): "
+            f"FOAT €{margin['im_foat_eur']:,.0f} / FGBL €{margin['im_fgbl_eur']:,.0f} per contract. "
+            f"{margin.get('note', '')}"
+        )
+        lines += [
+            "",
+            "| Risk budget | Entry FOAT/FGBL | Entry IM | Cap FOAT/FGBL | Cap IM | Cap reached near |",
+            "|---:|---:|---:|---:|---:|---:|",
+        ]
+        for b, block in margin.get("budgets", {}).items():
+            lines.append(
+                f"| €{int(b):,} | {block['entry_foat']}/{block['entry_fgbl']} | "
+                f"€{block['entry_im_eur']:,.0f} | {block['cap_foat']}/{block['cap_fgbl']} | "
+                f"€{block['cap_im_eur']:,.0f} | {block['cap_spread_bp']:.0f} bp |"
+            )
+        lines.append("")
     lines += [
         "",
         "## Notes",
@@ -100,11 +136,69 @@ def _write_results_md(path: Path, payload: dict) -> None:
         "- Options families are **parked** (Phase 0 scope: spread + CAC).",
         "- v5 used `seed + i` per level; v6 uses common random numbers (documented difference).",
         "- v6 default execution is daily-close; resting-stop reported as sensitivity.",
+        "- Phase 6 pitch HTML **deferred**. Scenario explorer: "
+        "[`explore_interactive.html`](explore_interactive.html) (interactive), "
+        "[`EXPLORE.md`](EXPLORE.md), [`explore.html`](explore.html).",
+        "- Earlier runs: [`archive/`](archive/) (results, explorer and data per snapshot stamp).",
         "",
-        "Machine-readable: `data/phase5_evaluate.json`.",
+        "Machine-readable: `data/phase5_evaluate.json` (gitignored; regenerate via "
+        "`run_phase5_evaluate.py`).",
         "",
     ]
     path.write_text("\n".join(lines))
+
+
+def _change_vs_reference(new: dict) -> dict | None:
+    """Key figures of this run next to the archived reference run."""
+    ref_stamp = reference_stamp()
+    path = archive_dir(ref_stamp) / "data" / "phase5_evaluate.json"
+    if not path.is_file():
+        return None
+    old = json.loads(path.read_text())
+    rows: list[dict] = []
+
+    def add(item: str, a: float, b: float, fmt: str, unit: str = "") -> None:
+        d = b - a
+        rows.append(
+            {
+                "item": item,
+                "ref": f"{a:{fmt}}{unit}",
+                "new": f"{b:{fmt}}{unit}",
+                "delta": f"{d:+{fmt}}{unit}",
+            }
+        )
+
+    oc, nc = old["calibration"], new["calibration"]
+    add("Entry spread (bp)", float(old["s0"]), float(new["s0"]), ".2f")
+    for code in ("FOAT", "FGBL"):
+        add(f"{code} € per bp", oc["eur_per_bp"][code], nc["eur_per_bp"][code], ".2f")
+    add("Hedge ratio FGBL per FOAT", oc["hedge_ratio"], nc["hedge_ratio"], ".3f")
+    net_o = oc["carry_bp_per_day"]["FOAT"] - oc["carry_bp_per_day"]["FGBL"]
+    net_n = nc["carry_bp_per_day"]["FOAT"] - nc["carry_bp_per_day"]["FGBL"]
+    add("Net carry (bp/day)", net_o, net_n, ".3f")
+    add("Spread vol (bp/day)", oc["vol"]["sig_s"], nc["vol"]["sig_s"], ".3f")
+    add("Bund vol (bp/day)", oc["vol"]["sig_b"], nc["vol"]["sig_b"], ".3f")
+    add("Spread/Bund correlation", oc["vol"]["rho"], nc["vol"]["rho"], ".3f")
+    for lv in ("240", "300", "340", "400"):
+        add(
+            f"Mean @ {lv} bp",
+            old["primary"]["by_level"][lv]["mean"],
+            new["primary"]["by_level"][lv]["mean"],
+            ".2f",
+            "×",
+        )
+    oa, na = old["primary"]["at_300"], new["primary"]["at_300"]
+    add("Median @ 300 bp", oa["median"], na["median"], ".2f", "×")
+    add("Stopped out @ 300 bp (%)", 100 * oa["p_lost"], 100 * na["p_lost"], ".1f")
+    add("≥10× @ 300 bp (%)", 100 * oa["p_10x"], 100 * na["p_10x"], ".1f")
+    ow, nw = old["primary"]["wrong"], new["primary"]["wrong"]
+    add("No-event mean", ow["mean"], nw["mean"], ".2f", "×")
+    add("No-event stopped out (%)", 100 * ow["p_lost"], 100 * nw["p_lost"], ".1f")
+    add("Integer contracts mean @ 300", old["integer_300"]["mean"], new["integer_300"]["mean"], ".2f", "×")
+    for name, block in new["sensitivities"].items():
+        prev = old.get("sensitivities", {}).get(name, {}).get("summary", "n/a")
+        rows.append({"item": f"Sensitivity: {name}", "ref": prev, "new": block["summary"], "delta": ""})
+    return {"reference_stamp": ref_stamp, "rows": rows}
 
 
 def main() -> int:
@@ -113,7 +207,9 @@ def main() -> int:
     args = ap.parse_args()
 
     cfg = load_config()
-    stamp = cfg["reference"]["stamp"]
+    mi = load_market_inputs(cfg)
+    start, s0, s0_report = mi.start, mi.s0, mi.s0_report
+    strict = mi.reference
     budget = float(cfg["budget_eur"])
     levels = [float(x) for x in cfg["view"]["levels_bp"]]
     scfg = ScenarioConfig.from_study_config(cfg)
@@ -128,18 +224,7 @@ def main() -> int:
             end=scfg.end,
         )
 
-    start = date.fromisoformat(stamp.split("T", 1)[0])
-    snap = load_eurex_snapshot(stamp)
-    s0 = (float(snap["yields"]["oat10"]) - float(snap["yields"]["bund10"])) * 100.0
-    s0_report = 138.0
-
-    yields = load_yields_daily()
-    settles = load_eurex_settles()
-    stocks = load_stocks_daily()
-    fc = calibrate_futures(settles, yields)
-    vol = calibrate_vol(yields, window=int(cfg["simulation"]["vol_window_bdays"]))
-    beta = stock_betas(stocks, yields, tickers=["^FCHI"])["^FCHI"]
-    pnl = live_spread_pnl(settles, yields)
+    fc, vol, vol_calm, beta, pnl = mi.fc, mi.vol, mi.vol_calm, mi.beta_cac, mi.pnl
 
     rule40 = Rule(40, 20, 0.0)
     rule30 = Rule(30, 15, 0.0)
@@ -190,7 +275,6 @@ def main() -> int:
         worlds_v15, fc, rule40, budget, levels, execution="daily_close"
     )
 
-    vol_calm = calmer_vol(yields)
     worlds_calm = simulate_worlds(vol_calm, s0=s0, start=start, levels=levels, cfg=scfg)
     calm = evaluate_spread_levels(
         worlds_calm, fc, rule40, budget, levels, execution="daily_close"
@@ -204,8 +288,9 @@ def main() -> int:
     p300 = primary["at_opt"]
     means = [primary["by_level"][str(int(L))]["mean"] for L in levels]
 
-    def close(a: float, b: float, tol: float) -> bool:
-        return abs(a - b) <= tol
+    def close(a: float, b: float, tol: float) -> bool | None:
+        # v5 targets gate only a replay of the v5 inputs
+        return abs(a - b) <= tol if strict else None
 
     reconcile = [
         reconcile_row(
@@ -221,14 +306,14 @@ def main() -> int:
             "0.114 / 0.015",
             f"{fc.carry_bp_per_day['FOAT']:.3f} / {fc.carry_bp_per_day['FGBL']:.3f}",
             cause="same calendar/63 formula",
-            ok=True,
+            ok=True if strict else None,
         ),
         reconcile_row(
             "Daily vol spread / Bund / ρ",
             "3.18 / 3.95 / 0.14",
             f"{vol.sig_s:.2f} / {vol.sig_b:.2f} / {vol.rho:.2f}",
             cause="same 126-day window",
-            ok=True,
+            ok=True if strict else None,
         ),
         reconcile_row(
             "Live P&L 3/3 FOAT/FGBL 11 Sep→8 Oct",
@@ -330,7 +415,9 @@ def main() -> int:
             ok=all(
                 abs(straight[int(L)] - t) < 1
                 for L, t in zip(levels, [76563, 181664, 251730, 356831])
-            ),
+            )
+            if strict
+            else None,
         ),
         reconcile_row(
             "Calmer vol window (pre-2026-09) @300",
@@ -343,7 +430,7 @@ def main() -> int:
     ]
 
     payload = {
-        "stamp": stamp,
+        **mi.meta(),
         "budget": budget,
         "n_paths": scfg.n_paths,
         "seed": scfg.seed,
@@ -369,43 +456,72 @@ def main() -> int:
         "sensitivities": {
             "resting_stop": {
                 "summary": f"@300 mean {_fmt_x(resting['at_opt']['mean'])}, "
-                f"lost {_fmt_pct(resting['at_opt']['p_lost'])}"
+                f"lost {_fmt_pct(resting['at_opt']['p_lost'])}",
+                "at_300": resting["at_opt"],
             },
             "stop_30_15": {
                 "summary": f"@300 mean {_fmt_x(stop30['at_opt']['mean'])}, "
-                f"lost {_fmt_pct(stop30['at_opt']['p_lost'])}"
+                f"lost {_fmt_pct(stop30['at_opt']['p_lost'])}",
+                "at_300": stop30["at_opt"],
             },
             "vol_x1.5": {
                 "summary": f"@300 mean {_fmt_x(vol15['at_opt']['mean'])}, "
-                f"lost {_fmt_pct(vol15['at_opt']['p_lost'])}"
+                f"lost {_fmt_pct(vol15['at_opt']['p_lost'])}",
+                "at_300": vol15["at_opt"],
             },
             "calmer_vol": {
                 "summary": f"σ_s={vol_calm.sig_s:.2f}; @300 mean {_fmt_x(calm['at_opt']['mean'])}, "
-                f"lost {_fmt_pct(calm['at_opt']['p_lost'])}"
+                f"lost {_fmt_pct(calm['at_opt']['p_lost'])}",
+                "at_300": calm["at_opt"],
+                "sig_s": vol_calm.sig_s,
             },
-            "bund_flight_terciles": {"summary": " / ".join(_fmt_x(x) for x in by_f)},
-            "timing_terciles": {"summary": " / ".join(_fmt_x(x) for x in by_tc)},
+            "bund_flight_terciles": {
+                "summary": " / ".join(_fmt_x(x) for x in by_f),
+                "means": [float(x) for x in by_f],
+            },
+            "timing_terciles": {
+                "summary": " / ".join(_fmt_x(x) for x in by_tc),
+                "means": [float(x) for x in by_tc],
+            },
             "cac": {
                 "summary": f"mean {_fmt_x(cac['right']['mean'])}, median {_fmt_x(cac['right']['median'])}, "
-                f"wrong {_fmt_x(cac['wrong']['mean'])}"
+                f"wrong {_fmt_x(cac['wrong']['mean'])}",
+                "right": cac["right"],
+                "wrong": cac["wrong"],
             },
-            "cac_beta_0.6": {"summary": f"mean {_fmt_x(cac06['right']['mean'])}"},
+            "cac_beta_0.6": {
+                "summary": f"mean {_fmt_x(cac06['right']['mean'])}",
+                "right": cac06["right"],
+            },
             "mix_75_25": {
                 "summary": f"mean {_fmt_x(mix_stats['mean'])}, median {_fmt_x(mix_stats['median'])}, "
-                f"corr {mix_corr:.2f}"
+                f"corr {mix_corr:.2f}",
+                "stats": mix_stats,
+                "corr": mix_corr,
             },
-            "stop_only": {"summary": f"@300 mean {_fmt_x(stop_only['at_opt']['mean'])}"},
+            "stop_only": {
+                "summary": f"@300 mean {_fmt_x(stop_only['at_opt']['mean'])}",
+                "at_300": stop_only["at_opt"],
+            },
         },
         "straight_line": straight,
+        "margin": margin_from_config(cfg, s0=s0_report, fc=fc),
         "reconcile": reconcile,
         "ok": all(r["ok"] for r in reconcile if r["ok"] is not None),
     }
+    if not strict:
+        payload["change_vs_reference"] = _change_vs_reference(payload)
 
     out_json = data_dir() / "phase5_evaluate.json"
     out_json.write_text(json.dumps(payload, indent=2, default=str))
     out_md = ANALYSIS_ROOT / "RESULTS.md"
     _write_results_md(out_md, payload)
 
+    change = payload.get("change_vs_reference")
+    if change:
+        print(f"\n=== change vs {change['reference_stamp']} ===")
+        for r in change["rows"]:
+            print(f"  {r['item']}: {r['ref']} → {r['new']} ({r['delta']})")
     print("\n=== HANDOVER §4 reconcile ===")
     for r in reconcile:
         mark = {True: "OK", False: "FAIL", None: "n/a"}[r["ok"]]

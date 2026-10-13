@@ -1,0 +1,311 @@
+{
+  "stamp": "2026-10-12T0941",
+  "qa": {
+    "ok": true,
+    "tables": [
+      {
+        "name": "yields_daily",
+        "ok": true,
+        "issues": [],
+        "rows": 520,
+        "start": "2024-10-10",
+        "end": "2026-10-09",
+        "columns": [
+          "oat10",
+          "bund10",
+          "spread_bp"
+        ]
+      },
+      {
+        "name": "eurex_settles",
+        "ok": true,
+        "issues": [],
+        "rows": 21,
+        "start": "2026-09-11",
+        "end": "2026-10-09",
+        "columns": [
+          "FOAT_front",
+          "FOAT_next",
+          "FOAT_front_month",
+          "FGBL_front",
+          "FGBL_next",
+          "FGBL_front_month"
+        ]
+      },
+      {
+        "name": "stocks_daily",
+        "ok": true,
+        "issues": [],
+        "rows": 767,
+        "start": "2023-10-09",
+        "end": "2026-10-09",
+        "columns": [
+          "ADP.PA",
+          "AF.PA",
+          "AMUN.PA",
+          "COV.PA",
+          "CS.PA",
+          "DG.PA",
+          "EN.PA",
+          "ENGI.PA",
+          "FGR.PA",
+          "GFC.PA",
+          "LI.PA",
+          "ORA.PA",
+          "RNO.PA",
+          "SCR.PA",
+          "SPIE.PA",
+          "URW.PA",
+          "VIE.PA",
+          "^FCHI"
+        ]
+      },
+      {
+        "name": "fred_monthly",
+        "ok": true,
+        "issues": [],
+        "rows": 236,
+        "start": "2007-01-01",
+        "end": "2026-08-01",
+        "columns": [
+          "IRLTLT01FRM156N",
+          "IRLTLT01DEM156N",
+          "IRLTLT01ITM156N"
+        ]
+      }
+    ],
+    "spot_checks": {
+      "yields_last_spread_bp": 137.41999999999996,
+      "yields_last_date": "2026-10-09",
+      "settles_last_date": "2026-10-09",
+      "foat_front_last": 108.98,
+      "fgbl_front_last": 120.84,
+      "cac_last": 7803.330078125,
+      "cac_last_date": "2026-10-09"
+    }
+  },
+  "v5_samples": {
+    "yields_daily_tail": [
+      {
+        "date": "2026-10-05",
+        "oat10": 4.8632,
+        "bund10": 3.4912,
+        "spread_bp": 137.2
+      },
+      {
+        "date": "2026-10-06",
+        "oat10": 4.7486,
+        "bund10": 3.4818,
+        "spread_bp": 126.68
+      },
+      {
+        "date": "2026-10-07",
+        "oat10": 4.8696,
+        "bund10": 3.4809,
+        "spread_bp": 138.87
+      },
+      {
+        "date": "2026-10-08",
+        "oat10": 4.8873,
+        "bund10": 3.4939,
+        "spread_bp": 139.34
+      },
+      {
+        "date": "2026-10-09",
+        "oat10": 4.8599,
+        "bund10": 3.4857,
+        "spread_bp": 137.42
+      }
+    ],
+    "eurex_settles_tail": [
+      {
+        "date": "2026-10-05",
+        "FOAT_front": 108.8,
+        "FOAT_next": 108.08,
+        "FGBL_front": 120.73,
+        "FGBL_next": 120.64
+      },
+      {
+        "date": "2026-10-06",
+        "FOAT_front": 109.88,
+        "FOAT_next": 109.18,
+        "FGBL_front": 120.9,
+        "FGBL_next": 120.79
+      },
+      {
+        "date": "2026-10-07",
+        "FOAT_front": 108.98,
+        "FOAT_next": 108.24,
+        "FGBL_front": 120.81,
+        "FGBL_next": 120.71
+      },
+      {
+        "date": "2026-10-08",
+        "FOAT_front": 108.66,
+        "FOAT_next": 107.9,
+        "FGBL_front": 120.67,
+        "FGBL_next": 120.57
+      },
+      {
+        "date": "2026-10-09",
+        "FOAT_front": 108.98,
+        "FOAT_next": 108.23,
+        "FGBL_front": 120.84,
+        "FGBL_next": 120.73
+      }
+    ],
+    "snapshot_yields": {
+      "oat10": 4.8303,
+      "bund10": 3.4569,
+      "time": "2026-10-12T09:41:38.000+0200",
+      "source": "CNBC FR10Y-FR / DE10Y-DE"
+    }
+  },
+  "live": {
+    "cnbc_yields": {
+      "ok": true,
+      "rows": 628,
+      "start": "2024-10-14",
+      "end": "2026-10-10",
+      "last": {
+        "oat10": 4.8455,
+        "bund10": 3.4654,
+        "spread_bp": 138.01000000000005
+      },
+      "tail": [
+        {
+          "date": "2026-10-06",
+          "oat10": 4.7486,
+          "bund10": 3.4818,
+          "spread_bp": 126.67999999999999
+        },
+        {
+          "date": "2026-10-07",
+          "oat10": 4.8696,
+          "bund10": 3.4809,
+          "spread_bp": 138.87
+        },
+        {
+          "date": "2026-10-08",
+          "oat10": 4.8873,
+          "bund10": 3.4939,
+          "spread_bp": 139.33999999999997
+        },
+        {
+          "date": "2026-10-09",
+          "oat10": 4.8599,
+          "bund10": 3.4857,
+          "spread_bp": 137.41999999999996
+        },
+        {
+          "date": "2026-10-10",
+          "oat10": 4.8455,
+          "bund10": 3.4654,
+          "spread_bp": 138.01000000000005
+        }
+      ]
+    },
+    "eurex_settles": {
+      "ok": true,
+      "rows": 20,
+      "start": "2026-09-14",
+      "end": "2026-10-09",
+      "last": {
+        "FOAT_front": 108.97999999999999,
+        "FOAT_next": 108.22999999999999,
+        "FGBL_front": 120.84,
+        "FGBL_next": 120.72999999999999
+      },
+      "tail": [
+        {
+          "date": "2026-10-05",
+          "FOAT_front": 108.79999999999998,
+          "FOAT_next": 108.07999999999997,
+          "FGBL_front": 120.72999999999999,
+          "FGBL_next": 120.64000000000001
+        },
+        {
+          "date": "2026-10-06",
+          "FOAT_front": 109.88000000000004,
+          "FOAT_next": 109.18000000000004,
+          "FGBL_front": 120.90000000000005,
+          "FGBL_next": 120.78999999999999
+        },
+        {
+          "date": "2026-10-07",
+          "FOAT_front": 108.97999999999999,
+          "FOAT_next": 108.23999999999998,
+          "FGBL_front": 120.80999999999997,
+          "FGBL_next": 120.71000000000001
+        },
+        {
+          "date": "2026-10-08",
+          "FOAT_front": 108.66000000000001,
+          "FOAT_next": 107.90000000000005,
+          "FGBL_front": 120.67000000000003,
+          "FGBL_next": 120.56999999999998
+        },
+        {
+          "date": "2026-10-09",
+          "FOAT_front": 108.97999999999999,
+          "FOAT_next": 108.22999999999999,
+          "FGBL_front": 120.84,
+          "FGBL_next": 120.72999999999999
+        }
+      ]
+    },
+    "fred_lt_yields": {
+      "ok": true,
+      "series": {
+        "FR10Y_LT": {
+          "rows": 236,
+          "start": "2007-01-01",
+          "end": "2026-08-01",
+          "last": 4.0
+        },
+        "DE10Y_LT": {
+          "rows": 236,
+          "start": "2007-01-01",
+          "end": "2026-08-01",
+          "last": 3.18
+        },
+        "IT10Y_LT": {
+          "rows": 236,
+          "start": "2007-01-01",
+          "end": "2026-08-01",
+          "last": 3.98598
+        }
+      }
+    },
+    "yahoo_cac": {
+      "ok": true,
+      "rows": 29,
+      "start": "2026-09-01",
+      "end": "2026-10-09",
+      "last_close": 7803.330078125,
+      "tail": [
+        {
+          "date": "2026-10-05",
+          "close": 7834.10009765625
+        },
+        {
+          "date": "2026-10-06",
+          "close": 7865.06982421875
+        },
+        {
+          "date": "2026-10-07",
+          "close": 7769.2099609375
+        },
+        {
+          "date": "2026-10-08",
+          "close": 7729.68994140625
+        },
+        {
+          "date": "2026-10-09",
+          "close": 7803.330078125
+        }
+      ]
+    },
+    "all_ok": true
+  }
+}

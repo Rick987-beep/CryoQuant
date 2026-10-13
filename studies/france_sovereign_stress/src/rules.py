@@ -29,7 +29,7 @@ from src.scenarios import World
 ExecutionMode = Literal["daily_close", "resting_stop"]
 SizingMode = Literal["continuous", "integer"]
 
-FUT_FEE = 2.35
+FUT_FEE = 2.00
 TICK_EUR = 10.0
 HALF_TICK = TICK_EUR / 2.0
 
@@ -95,7 +95,7 @@ def build_spread_sleeve(
     """Short FOAT / long FGBL, equal €/bp; X = Δspread − net carry.
 
     ``fee_per_side`` / ``half_tick_eur`` are per-contract, per-side (€). Defaults
-    match the v5 IBKR/Lynx proxy (€2.35 + half of €10 tick).
+    match the Lynx live fill (€2.00 commission + half of €10 tick).
     """
     t = np.arange(world.T + 1)[None, :]
     net_carry = fc.carry_bp_per_day["FOAT"] - fc.carry_bp_per_day["FGBL"]

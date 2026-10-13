@@ -86,13 +86,20 @@ class LivePnLCheck:
 def calibrate_futures(
     settles: pd.DataFrame,
     yields: pd.DataFrame,
+    *,
+    window: int | None = None,
 ) -> FutCalib:
-    """v5 FutCalib: regress Δsettle on Δyield (bp); carry from mean front−next calendar."""
+    """v5 FutCalib: regress Δsettle on Δyield (bp); carry from mean front−next calendar.
+
+    ``window`` keeps the last N overlapping settlement days (v5 used 20).
+    """
     es = settles.copy()
     es.index = pd.DatetimeIndex(es.index).tz_localize(None).normalize()
     y = _weekdays(yields.copy())
     y.index = pd.DatetimeIndex(y.index).tz_localize(None).normalize()
     df = es.join(y, how="inner")
+    if window is not None:
+        df = df.iloc[-window:]
     if len(df) < 5:
         raise ValueError(f"need ≥5 overlapping settle/yield days; got {len(df)}")
     d = df.diff().dropna()

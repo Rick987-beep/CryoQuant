@@ -24,6 +24,21 @@ french_equities:
     - yahoo:SPIE.PA
     - yahoo:AF.PA
     - yahoo:RNO.PA
+    # v7 French banks + Euro Stoxx Banks ETF proxy
+    - yahoo:BNP.PA
+    - yahoo:GLE.PA
+    - yahoo:ACA.PA
+    - yahoo:EXV1.DE
+
+french_banks_long:
+  timeframes: ["1d"]
+  start_daily: "2010-01-01"
+  symbols:
+    - yahoo:^FCHI
+    - yahoo:BNP.PA
+    - yahoo:GLE.PA
+    - yahoo:ACA.PA
+    - yahoo:EXV1.DE
 
 macro_cnbc:
   symbols:

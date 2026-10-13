@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date
 from pathlib import Path
 
 STUDY_DIR = Path(__file__).resolve().parent
@@ -16,15 +15,9 @@ sys.path.insert(0, str(STUDY_DIR))
 
 import numpy as np
 
-from src.calibrate import calibrate_vol, stock_betas
-from src.data.reference import load_eurex_snapshot, load_stocks_daily, load_yields_daily
+from src.inputs import load_market_inputs
 from src.paths import data_dir, load_config
 from src.scenarios import ScenarioConfig, simulate_worlds, stock_cum_returns
-
-
-def _asof_from_stamp(stamp: str) -> date:
-    # "2026-10-09T1456" → 2026-10-09
-    return date.fromisoformat(stamp.split("T", 1)[0])
 
 
 def main() -> int:
@@ -45,19 +38,15 @@ def main() -> int:
             end=scfg.end,
         )
 
-    stamp = cfg["reference"]["stamp"]
-    start = _asof_from_stamp(stamp)
-    snap = load_eurex_snapshot(stamp)
-    s0 = (float(snap["yields"]["oat10"]) - float(snap["yields"]["bund10"])) * 100.0
+    mi = load_market_inputs(cfg)
+    stamp, start, s0, vol = mi.stamp, mi.start, mi.s0, mi.vol
     levels = [float(x) for x in cfg["view"]["levels_bp"]]
 
-    vol = calibrate_vol(load_yields_daily(), window=int(cfg["simulation"]["vol_window_bdays"]))
     worlds = simulate_worlds(vol, s0=s0, start=start, levels=levels, cfg=scfg)
 
     # Light CAC path check on the optimise level
     opt = float(cfg["view"]["optimise_bp"])
-    betas = stock_betas(load_stocks_daily(), load_yields_daily(), tickers=["^FCHI"])
-    cac_r = stock_cum_returns(worlds[opt], betas["^FCHI"])
+    cac_r = stock_cum_returns(worlds[opt], mi.beta_cac)
     rows = np.arange(worlds[opt].n)
     cac_at_exit = cac_r[rows, worlds[opt].tc]
 
@@ -96,7 +85,7 @@ def main() -> int:
         problems.append("tc not shared across levels")
 
     out = {
-        "stamp": stamp,
+        **mi.meta(),
         "asof": str(start),
         "s0_bp": s0,
         "n_paths": scfg.n_paths,

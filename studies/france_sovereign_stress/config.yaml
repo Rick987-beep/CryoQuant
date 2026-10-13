@@ -19,6 +19,18 @@ view:
 
 budget_eur: 10000
 
+# Overnight initial margin per contract (IBKR Europe / Eurex Prisma). Additive
+# ceiling for short FOAT + long FGBL; live portfolio credit may be a bit lower.
+# Refresh with TWS Preview on each leg; update asof when you do.
+margin:
+  asof: "2026-10-12"
+  source: "IBKR Europe TWS order preview (Lynx), overnight initial"
+  initial_eur:
+    FOAT: 3247   # short OAT Dec26 Δ IM
+    FGBL: 2363   # long GBL Dec26 Δ IM
+  fgbl_cap: 18
+  budget_scenarios_eur: [10000, 15000, 20000]
+
 simulation:
   n_paths: 10000
   seed: 11
@@ -35,17 +47,31 @@ instruments:                # v5 calibration values; v6 re-derives them
   MFC:  {venue: euronext, eur_per_point: 1}
 
 costs:
-  fee_per_contract_eur: 2.35
+  fee_per_contract_eur: 2.00  # Lynx blotter 12 Oct 2026; was 2.35 = 2.00 + ~0.27 Eurex
   half_tick_per_side: true
   stop_slippage_bp: 1.0
   gap_fill: half_gap        # v5; v6 should make daily-close execution the baseline
   stock_cost_pa: 0.035
   cac_future_carry_pa: 0.01
+  # v7 options (Swissquote). Published tariff not confirmed live — conservative assumption.
+  option_fee_per_contract_eur: 2.50
+  option_fee_note: >
+    Assumed €2.50/contract/side for Eurex OOAT/OGBL and equity options at Swissquote.
+    Flagged as unconfirmed; show fee sensitivity if tariff differs.
 
 rules:
   spread_cap_foat: 20
   recommended: {stop_bp: 40, add_every_bp: 20, keep: 0.0}
 
+calibration:
+  settle_window_days: 20    # futures €/bp regression and carry: last N settlement days
+
 reference:
   v5_dir: input/v5_reference
   stamp: "2026-10-09T1456"
+
+# Active run. null = replay the v5 reference (strict reconcile gates).
+# A stamp reads input/snapshots/<stamp>/data, written by run_snapshot.py.
+# Override per shell with FSS_SNAPSHOT=<stamp> or FSS_SNAPSHOT=reference.
+snapshot:
+  stamp: "2026-10-13T1010"

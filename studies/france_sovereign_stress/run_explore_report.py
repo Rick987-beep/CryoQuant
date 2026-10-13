@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Build EXPLORE.md + reports/explore.html from the fine exit-level grid.
+"""Build the explorer data and EXPLORE.md + explore.html for the active snapshot.
 
-Regenerates ``data/exit_level_grid.json`` when missing (base fee × half-tick
-only for speed; full fee grid optional via ``--full-costs``).
+Regenerates ``data/exit_level_grid.json`` (3×3 fee × bid–ask grids, 200–400 bp)
+and ``data/canvas_explore.json`` (presets, bands, sample paths, trade log) when
+they are missing, belong to another snapshot stamp, or ``--force`` is given.
+``run_explore_interactive.py`` then renders the interactive HTML from them.
 """
 
 from __future__ import annotations
@@ -10,7 +12,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date
 from pathlib import Path
 
 STUDY_DIR = Path(__file__).resolve().parent
@@ -20,27 +21,46 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cryoquant.reporting.html_brand import escape_html, fig_to_b64, html_document, style_axes
-from src.calibrate import calibrate_futures, calibrate_vol
-from src.data.reference import load_eurex_settles, load_yields_daily
 from src.evaluate import run_sleeve_multiples
-from src.paths import data_dir, load_config, reports_dir
+from src.explore_data import build_explore_payload
+from src.inputs import MarketInputs, load_market_inputs
+from src.paths import active_stamp, data_dir, load_config, reports_dir
 from src.rules import FUT_FEE, HALF_TICK, Rule, build_spread_sleeve
 from src.scenarios import ScenarioConfig, simulate_worlds
 
 
-def _ensure_grid(*, n: int, full_costs: bool) -> dict:
-    out = data_dir() / "exit_level_grid.json"
-    if out.exists() and not full_costs:
-        return json.loads(out.read_text())
-
+def _cached(name: str, force: bool) -> dict | None:
+    path = data_dir() / name
+    if force or not path.exists():
+        return None
+    payload = json.loads(path.read_text())
+    meta = payload.get("meta") or {}
+    if meta.get("stamp") != active_stamp():
+        return None
     cfg = load_config()
-    stamp = cfg["reference"]["stamp"]
-    budget = float(cfg["budget_eur"])
-    levels = list(range(200, 401, 10))
-    fees = [1.50, 2.35, 4.00] if full_costs else [2.35]
-    half_ticks = [2.5, 5.0, 10.0] if full_costs else [5.0]
+    m = cfg.get("margin") or {}
+    im = m.get("initial_eur") or {}
+    if name == "canvas_explore.json":
+        want = (
+            str(m.get("asof", "")),
+            float(im.get("FOAT", 0)),
+            float(im.get("FGBL", 0)),
+            float(cfg["budget_eur"]),
+        )
+        got = (
+            str(meta.get("margin_asof", "")),
+            float((payload.get("margin") or {}).get("im_foat_eur", -1)),
+            float((payload.get("margin") or {}).get("im_fgbl_eur", -1)),
+            float(meta.get("budget", -1)),
+        )
+        if want != got:
+            return None
+    return payload
+
+
+def _scenario_cfg(cfg: dict, n: int) -> ScenarioConfig:
     scfg = ScenarioConfig.from_study_config(cfg)
-    scfg = ScenarioConfig(
+    return ScenarioConfig(
         n_paths=n,
         seed=scfg.seed,
         event_bdays=scfg.event_bdays,
@@ -49,12 +69,32 @@ def _ensure_grid(*, n: int, full_costs: bool) -> dict:
         dof=scfg.dof,
         end=scfg.end,
     )
-    start = date.fromisoformat(stamp.split("T", 1)[0])
-    s0 = 138.0
-    yields = load_yields_daily()
-    settles = load_eurex_settles()
-    fc = calibrate_futures(settles, yields)
-    vol = calibrate_vol(yields, window=int(cfg["simulation"]["vol_window_bdays"]))
+
+
+def _ensure_explore(mi: MarketInputs, *, n: int, force: bool) -> dict:
+    cached = _cached("canvas_explore.json", force)
+    if cached is not None:
+        return cached
+    cfg = load_config()
+    print(f"explore presets n={n} stamp={mi.stamp}")
+    payload = build_explore_payload(mi, _scenario_cfg(cfg, n), budget=float(cfg["budget_eur"]))
+    data_dir().mkdir(parents=True, exist_ok=True)
+    (data_dir() / "canvas_explore.json").write_text(json.dumps(payload))
+    return payload
+
+
+def _ensure_grid(mi: MarketInputs, *, n: int, force: bool) -> dict:
+    cached = _cached("exit_level_grid.json", force)
+    if cached is not None:
+        return cached
+
+    cfg = load_config()
+    stamp, start, s0, fc, vol = mi.stamp, mi.start, mi.s0, mi.fc, mi.vol
+    budget = float(cfg["budget_eur"])
+    levels = list(range(200, 401, 10))
+    fees = [1.50, 2.00, 4.00]
+    half_ticks = [2.5, 5.0, 10.0]
+    scfg = _scenario_cfg(cfg, n)
     rule = Rule(40, 20, 0.0)
 
     print(f"explore grid n={n} levels={len(levels)} fees={fees} half_ticks={half_ticks}")
@@ -91,7 +131,7 @@ def _ensure_grid(*, n: int, full_costs: bool) -> dict:
     payload = {
         "meta": {
             "stamp": stamp,
-            "s0": s0,
+            "s0": round(s0, 2),
             "budget": budget,
             "n_paths": n,
             "seed": scfg.seed,
@@ -104,7 +144,7 @@ def _ensure_grid(*, n: int, full_costs: bool) -> dict:
         },
         "fee_options": [
             {"value": "1.5", "label": "€1.50 / side (cheap)"},
-            {"value": "2.35", "label": "€2.35 / side (base · IBKR/Lynx proxy)"},
+            {"value": "2", "label": "€2.00 / side (base · Lynx live)"},
             {"value": "4", "label": "€4.00 / side (expensive)"},
         ],
         "half_tick_options": [
@@ -115,7 +155,7 @@ def _ensure_grid(*, n: int, full_costs: bool) -> dict:
         "grids": grids,
     }
     data_dir().mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, indent=2))
+    (data_dir() / "exit_level_grid.json").write_text(json.dumps(payload, indent=2))
     return payload
 
 
@@ -163,7 +203,7 @@ def write_md(payload: dict, curve: list[dict], path: Path) -> None:
     lines = [
         "# EXPLORE — france_sovereign_stress",
         "",
-        f"Snapshot `{meta['stamp']}` · budget €{meta['budget']:,.0f} · "
+        f"Snapshot `{meta['stamp']}` · entry spread {meta['s0']:.2f} bp · budget €{meta['budget']:,.0f} · "
         f"n={meta['n_paths']} · seed={meta['seed']} · "
         f"rule `{meta['rule']}` · execution `{meta['execution']}`.",
         "",
@@ -173,7 +213,7 @@ def write_md(payload: dict, curve: list[dict], path: Path) -> None:
         "",
         f"Right-world exits **{meta['grid']}** bp. Default costs: "
         f"**€{meta['default_fee']}/side** fee + **€{meta['default_half_tick']}** half-tick "
-        "(Lynx/IBKR-style proxy; Eurex exchange ~€0.27/contract on top in live trading).",
+        "(Lynx live commission; half-tick for a 1-tick market).",
         "",
         f"At **300 bp**: mean **{r300['mean']:.2f}×**, median **{r300['p50']:.2f}×**, "
         f"p10 **{r300['p10']:.2f}×**, p90 **{r300['p90']:.2f}×**, "
@@ -194,7 +234,7 @@ def write_md(payload: dict, curve: list[dict], path: Path) -> None:
         "## Execution and costs (checked)",
         "",
         "- **Instruments:** short FOAT / long FGBL (DV01-neutral); optional short CAC.",
-        "- **Fees:** €2.35/contract/side in sim ≈ Lynx €2.00 + Eurex A-account ~€0.27.",
+        "- **Fees:** €2.00/contract/side, matching Lynx commission on a live OAT fill (12 Oct 2026). Half-tick €5 kept (1-tick market).",
         "- **Bid–ask:** half-tick (€5) per leg — matches a 1-tick book with aggressive fills "
         "in European hours. Markets closed weekends (Mon–Fri only).",
         "- **Execution:** `daily_close` baseline; 1 bp stop slip; quarterly rolls charged.",
@@ -304,16 +344,14 @@ def write_html(payload: dict, curve: list[dict], path: Path) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--n", type=int, default=2000)
-    ap.add_argument("--full-costs", action="store_true", help="Rebuild 3×3 fee×half-tick grids")
-    ap.add_argument("--force", action="store_true", help="Regenerate grid even if JSON exists")
+    ap.add_argument("--n", type=int, default=2000, help="paths per exit level in the fine grid")
+    ap.add_argument("--n-presets", type=int, default=1500, help="paths per preset in the explorer data")
+    ap.add_argument("--force", action="store_true", help="regenerate both data files")
     args = ap.parse_args()
 
-    grid_path = data_dir() / "exit_level_grid.json"
-    if args.force and grid_path.exists():
-        grid_path.unlink()
-
-    payload = _ensure_grid(n=args.n, full_costs=args.full_costs or args.force)
+    mi = load_market_inputs()
+    payload = _ensure_grid(mi, n=args.n, force=args.force)
+    _ensure_explore(mi, n=args.n_presets, force=args.force)
     curve = _base_curve(payload)
 
     md_path = STUDY_DIR / "EXPLORE.md"

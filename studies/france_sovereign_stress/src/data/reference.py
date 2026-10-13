@@ -1,4 +1,8 @@
-"""Load frozen v5 reference inputs from ``input/v5_reference/``."""
+"""Load market inputs for the active snapshot (see ``src.paths.active_stamp``).
+
+The reference stamp reads the frozen v5 files in ``input/v5_reference/data``;
+any other stamp reads ``input/snapshots/<stamp>/data`` (same file layout).
+"""
 
 from __future__ import annotations
 
@@ -8,11 +12,11 @@ from typing import Any
 
 import pandas as pd
 
-from src.paths import load_config, v5_reference_dir
+from src.paths import active_stamp, snapshot_data_dir
 
 
 def _data_dir() -> Path:
-    return v5_reference_dir() / "data"
+    return snapshot_data_dir()
 
 
 def load_yields_daily() -> pd.DataFrame:
@@ -71,7 +75,7 @@ def load_fred_monthly() -> pd.DataFrame:
 
 
 def load_eurex_snapshot(stamp: str | None = None) -> dict[str, Any]:
-    """Live Eurex chains + CNBC quote snapshot from the v5 stamp."""
-    cfg_stamp = stamp or load_config()["reference"]["stamp"]
-    path = _data_dir() / f"eurex_{cfg_stamp}.json"
+    """CNBC live quote + Eurex futures (and v5 option chains) taken at ``stamp``."""
+    stamp = stamp or active_stamp()
+    path = snapshot_data_dir(stamp) / f"eurex_{stamp}.json"
     return json.loads(path.read_text())

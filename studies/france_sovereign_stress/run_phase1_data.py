@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 1 stop: load v5 reference, QA, probe live sources, print cross-check samples.
+"""Phase 1 stop: load the active snapshot, QA, probe live sources, print cross-check samples.
 
 Does not run pricing or simulation. Writes ``data/phase1_probe.json``.
 """
@@ -21,7 +21,7 @@ from src.data.reference import (
     load_stocks_daily,
     load_yields_daily,
 )
-from src.paths import data_dir, load_config
+from src.paths import active_stamp, data_dir, is_reference_run
 
 
 def _print_table(title: str, rows: list[dict]) -> None:
@@ -37,8 +37,8 @@ def _print_table(title: str, rows: list[dict]) -> None:
 
 
 def main() -> int:
-    cfg = load_config()
-    stamp = cfg["reference"]["stamp"]
+    stamp = active_stamp()
+    label = "v5 reference" if is_reference_run() else "snapshot"
 
     yields = load_yields_daily()
     settles = load_eurex_settles()
@@ -48,14 +48,14 @@ def main() -> int:
 
     qa = qa_report(yields, settles, stocks, fred)
 
-    print(f"france_sovereign_stress Phase 1 — v5 stamp {stamp}")
+    print(f"france_sovereign_stress Phase 1 — {label} {stamp}")
     print(f"QA ok={qa['ok']}")
     for t in qa["tables"]:
         flag = "OK" if t["ok"] else "FAIL"
         print(f"  [{flag}] {t['name']}: {t['rows']} rows {t['start']} → {t['end']}"
               + (f" issues={t['issues']}" if t.get("issues") else ""))
 
-    # Cross-check samples from frozen reference
+    # Cross-check samples from the active snapshot
     y_tail = [
         {
             "date": str(ts.date()),
@@ -75,11 +75,11 @@ def main() -> int:
         }
         for ts, r in settles.tail(5).iterrows()
     ]
-    _print_table("v5 reference yields_daily (last 5)", y_tail)
-    _print_table("v5 reference eurex_settles (last 5)", s_tail)
+    _print_table(f"{label} yields_daily (last 5)", y_tail)
+    _print_table(f"{label} eurex_settles (last 5)", s_tail)
 
     yq = snap.get("yields", {})
-    print("\n=== v5 snapshot quote (eurex_* JSON) ===")
+    print(f"\n=== {label} quote (eurex_{stamp}.json) ===")
     print(
         f"  time={yq.get('time')}  oat10={yq.get('oat10')}  bund10={yq.get('bund10')}  "
         f"spread_bp={round((float(yq['oat10']) - float(yq['bund10'])) * 100, 2) if yq.get('oat10') else 'n/a'}"

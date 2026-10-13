@@ -12,32 +12,16 @@ from pathlib import Path
 STUDY_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(STUDY_DIR))
 
-from src.calibrate import (
-    calibrate_futures,
-    calibrate_vol,
-    duration_cross_check,
-    live_spread_pnl,
-    reconcile_v5,
-    stock_betas,
-)
-from src.data.reference import load_eurex_settles, load_stocks_daily, load_yields_daily
+from src.calibrate import duration_cross_check, reconcile_v5
+from src.inputs import load_market_inputs
 from src.paths import data_dir, load_config
 
 
 def main() -> int:
     cfg = load_config()
-    window = int(cfg["simulation"]["vol_window_bdays"])
-
-    yields = load_yields_daily()
-    settles = load_eurex_settles()
-    stocks = load_stocks_daily()
-
-    fc = calibrate_futures(settles, yields)
-    vol = calibrate_vol(yields, window=window)
-    pnl = live_spread_pnl(settles, yields)
+    mi = load_market_inputs(cfg)
+    stocks, fc, vol, pnl, cac = mi.stocks, mi.fc, mi.vol, mi.pnl, mi.beta_cac
     xcheck = duration_cross_check(fc)
-    betas = stock_betas(stocks, yields, vol_window=window, tickers=["^FCHI"])
-    cac = betas.get("^FCHI")
 
     # Prefer exact v5 JSON assumptions when present
     v5_path = (
@@ -61,7 +45,8 @@ def main() -> int:
 
     recon = reconcile_v5(fc, vol, pnl, v5_eur=v5_eur, v5_vol=v5_vol)
 
-    print("france_sovereign_stress Phase 2 — pricing / calibration")
+    print(f"france_sovereign_stress Phase 2 — pricing / calibration · {mi.stamp} "
+          f"(history to {mi.history_end}, settles to {mi.meta()['settles_end']})")
     print(f"FutCalib days={fc.days}  hedge_ratio={fc.hedge_ratio:.4f}")
     for code in ("FOAT", "FGBL"):
         print(
@@ -100,22 +85,28 @@ def main() -> int:
             f"last={float(stocks['^FCHI'].iloc[-1]):.2f}"
         )
 
-    # Acceptance gates
+    # Acceptance gates. Structural checks always apply; drift from the v5
+    # calibration is a failure only when replaying the v5 reference.
     problems: list[str] = []
+    drift: list[str] = []
     if not pnl.pnl_ok:
         problems.append(f"live P&L {pnl.pnl_eur} ≠ target {pnl.target_eur}")
     for code in ("FOAT", "FGBL"):
         if abs(xcheck[code]["identity_diff"]) > 1e-6:
             problems.append(f"{code} duration identity failed")
         if abs(fc.eur_per_bp[code] - v5_eur[code]) > 0.05:
-            problems.append(
-                f"{code} €/bp {fc.eur_per_bp[code]:.4f} vs v5 {v5_eur[code]:.4f}"
-            )
+            drift.append(f"{code} €/bp {fc.eur_per_bp[code]:.4f} vs v5 {v5_eur[code]:.4f}")
     if abs(vol.sig_s - v5_vol["sig_s"]) > 0.02:
-        problems.append(f"sig_s {vol.sig_s} vs v5 {v5_vol['sig_s']}")
+        drift.append(f"sig_s {vol.sig_s:.4f} vs v5 {v5_vol['sig_s']}")
+    if mi.reference:
+        problems += drift
+    elif drift:
+        print("Drift vs v5 calibration (expected with new data):")
+        for d in drift:
+            print(f"  - {d}")
 
     out = {
-        "stamp": cfg["reference"]["stamp"],
+        **mi.meta(),
         "futures": fc.to_dict(),
         "vol": vol.to_dict(),
         "live_pnl": pnl.to_dict(),
@@ -132,6 +123,7 @@ def main() -> int:
             "eur_per_point_fce": cfg["instruments"]["FCE"]["eur_per_point"],
         },
         "reconcile_v5": recon,
+        "drift_vs_v5": drift,
         "problems": problems,
         "ok": not problems,
     }
